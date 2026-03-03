@@ -10,20 +10,14 @@
     name: "{{ core_ns }}"
     state: present
 
-# =========================
-# Cleanup PVC cert-pvc if it exists
-# =========================
-- name: Delete cert-pvc if it already exists
+- name: Delete cert-pvc if it exists
   kubernetes.core.k8s:
     state: absent
     kind: PersistentVolumeClaim
     name: cert-pvc
     namespace: "{{ core_ns }}"
-  ignore_errors: true  # Ignore if it doesn’t exist
+  ignore_errors: true
 
-# =========================
-# Deploy Free5GC via Helm
-# =========================
 - name: Deploy Free5GC using Helm
   when: rru == 'rfsim'
   kubernetes.core.helm:
@@ -35,7 +29,7 @@
     atomic: true
     timeout: 1200s
     values:
-      # Force all pods to run on the core node
+      # Scheduler → tous les pods sur le core node
       nodeSelector:
         kubernetes.io/hostname: "{{ core_node_name }}"
       affinity:
@@ -47,6 +41,7 @@
                     operator: In
                     values:
                       - "{{ core_node_name }}"
+      # UPF privileges pour gtp5g
       upf:
         privileged: true
         capabilities:
