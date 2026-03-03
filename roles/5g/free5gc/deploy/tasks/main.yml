@@ -11,8 +11,18 @@
     state: present
 
 # =========================
-# Déploiement Free5GC via Helm
-# Helm créera automatiquement le PVC cert-pvc
+# Cleanup PVC cert-pvc if it exists
+# =========================
+- name: Delete cert-pvc if it already exists
+  kubernetes.core.k8s:
+    state: absent
+    kind: PersistentVolumeClaim
+    name: cert-pvc
+    namespace: "{{ core_ns }}"
+  ignore_errors: true  # Ignore if it doesn’t exist
+
+# =========================
+# Deploy Free5GC via Helm
 # =========================
 - name: Deploy Free5GC using Helm
   when: rru == 'rfsim'
@@ -25,7 +35,7 @@
     atomic: true
     timeout: 1200s
     values:
-      # Tous les pods Free5GC planifiés sur le core node
+      # Force all pods to run on the core node
       nodeSelector:
         kubernetes.io/hostname: "{{ core_node_name }}"
       affinity:
@@ -37,7 +47,6 @@
                     operator: In
                     values:
                       - "{{ core_node_name }}"
-      # UPF doit être privilégié pour charger le module gtp5g
       upf:
         privileged: true
         capabilities:
