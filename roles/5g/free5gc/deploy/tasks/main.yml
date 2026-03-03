@@ -10,16 +10,26 @@
     kind: Namespace
     name: "{{ core_ns }}"
     state: present
-    
+
 - name: Deploy free5gc using Helm
   when: rru == 'rfsim'
   kubernetes.core.helm:
     name: free5gc
     chart_ref: "{{ [repo_dest, 'charts', 'free5gc'] | path_join }}"
     release_namespace: "{{ core_ns }}"
-    #values_files:
-    #  - "{{ values_file }}"
     state: present
-    wait: True
-    atomic: True
+    wait: true
+    atomic: true
     timeout: 1200s
+    values:
+      # Force all pods to run on a single core node
+      nodeSelector: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - "{{ core_node_name }}"

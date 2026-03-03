@@ -4,3 +4,4 @@ repo_dest: "~/free5gc-helm"
 repo_branch: "main"
 free5gc_root: "{{ repo_dest }}/charts/free5gc"
 core_ns: "free5gc"
+free5gc_prepare_node: true
