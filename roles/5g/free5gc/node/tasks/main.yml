@@ -74,4 +74,11 @@
     value: "1"
     state: present
     reload: yes
- 
+
+- name: Ensure iptables can forward bridged packets
+  become: true
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: "1"
+    state: present
+    reload: yes

@@ -3,8 +3,7 @@
   include_vars:
     file: "../config/defaults/main.yml"
 
-
-- name: Ensure Open5GS namespace exists
+- name: Ensure Free5GC namespace exists
   kubernetes.core.k8s:
     api_version: v1
     kind: Namespace
@@ -22,8 +21,8 @@
     atomic: true
     timeout: 1200s
     values:
-      # Force all pods to run on a single core node
-      nodeSelector: {}
+      nodeSelector:
+        kubernetes.io/hostname: "{{ core_node_name }}"
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -33,3 +32,17 @@
                     operator: In
                     values:
                       - "{{ core_node_name }}"
+      upf:
+        privileged: true
+        capabilities:
+          add:
+            - NET_ADMIN
+            - SYS_MODULE
+      pvc:
+        cert:
+          enabled: true
+          size: 1Gi
+          storageClassName: openebs-hostpath
+          accessModes:
+            - ReadWriteOnce
+          volumeMode: Filesystem
