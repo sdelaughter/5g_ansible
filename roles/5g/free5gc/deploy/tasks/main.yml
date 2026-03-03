@@ -3,21 +3,38 @@
   include_vars:
     file: "../config/defaults/main.yml"
 
-- name: Ensure Free5GC namespace exists
+- name: Ensure Open5GS namespace exists
   kubernetes.core.k8s:
     api_version: v1
     kind: Namespace
     name: "{{ core_ns }}"
     state: present
 
-- name: Remove existing cert-pvc if exists
+# ------------------------
+# Step 1: Clean existing cert-pvc
+# ------------------------
+- name: Delete existing cert-pvc if exists
   kubernetes.core.k8s:
     state: absent
+    api_version: v1
     kind: PersistentVolumeClaim
-    namespace: "{{ core_ns }}"
     name: cert-pvc
+    namespace: "{{ core_ns }}"
   ignore_errors: yes
 
+- name: Delete PV linked to cert-pvc if exists
+  shell: |
+    PV=$(kubectl get pv --no-headers | grep cert-pvc | awk '{print $1}')
+    if [[ ! -z "$PV" ]]; then
+      kubectl delete pv $PV
+    fi
+  args:
+    executable: /bin/bash
+  ignore_errors: yes
+
+# ------------------------
+# Step 2: Deploy Free5GC via Helm
+# ------------------------
 - name: Deploy free5gc using Helm
   when: rru == 'rfsim'
   kubernetes.core.helm:
@@ -41,7 +58,7 @@
                     values:
                       - "{{ core_node_name }}"
       upf:
-        privileged: True
+        privileged: true
         capabilities:
           add:
             - NET_ADMIN
