@@ -195,14 +195,14 @@
   when: rru == 'rfsim'
   kubernetes.core.helm:
     name: free5gc
-    chart_ref: "{{ [repo_dest, 'charts', 'free5gc'] | path_join }}"
+    chart_ref: "{{ [free5gc_repo_dest, 'charts', 'free5gc'] | path_join }}"
     release_namespace: "{{ core_ns }}"
     state: present
     wait: true
     atomic: true
     timeout: 1200s
     values_files:
-      - "{{ repo_dest }}/values-profile-override.yaml"
+      - "{{ free5gc_repo_dest }}/values-profile-override.yaml"
     values:
       nodeSelector:
         kubernetes.io/hostname: "{{ core_node_name }}"
