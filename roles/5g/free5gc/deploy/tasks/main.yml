@@ -195,7 +195,7 @@
   when: rru == 'rfsim'
   kubernetes.core.helm:
     name: free5gc
-    chart_ref: "{{ [repo_dest, 'charts', 'free5gc'] | path_join }}"
+    chart_ref: "{{ [free5gc_repo_dest, 'charts', 'free5gc'] | path_join }}"
     release_namespace: "{{ core_ns }}"
     state: present
     wait: true

@@ -1,14 +1,14 @@
 ---
 - name: Remove existing free5gc directory to ensure clean state
   ansible.builtin.file:
-    path: "{{ repo_dest }}"
+    path: "{{ free5gc_repo_dest }}"
     state: absent
 
 - name: Clone free5gc repo
   ansible.builtin.git:
-    repo: "{{ repo_url }}"
-    dest: "{{ repo_dest }}"
-    version: "{{ repo_branch }}"
+    repo: "{{ free5gc_repo_url }}"
+    dest: "{{ free5gc_repo_dest }}"
+    version: "{{ free5gc_repo_branch }}"
     update: yes
     force: yes
 
@@ -57,7 +57,7 @@
 - name: Generate add_subscribers.py for free5gc
   ansible.builtin.template:
     src: add_subscribers.py.j2
-    dest: "{{ repo_dest }}/docker/free5gc/free5gc-dbpython/add_subscribers.py"
+    dest: "{{ free5gc_repo_dest }}/docker/free5gc/free5gc-dbpython/add_subscribers.py"
     mode: "0755"
   vars:
     profile: "{{ fiveg }}"
