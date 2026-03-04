@@ -43,8 +43,34 @@
   failed_when: false
   when: helm_release_exists.stdout | trim | int > 0
 
+- name: Wait after Helm uninstall before cleaning resources
+  pause:
+    seconds: 10
+  when: helm_release_exists.stdout | trim | int > 0
+
 # ============================================================
-# Step 2: Clean up cert-pvc and its bound PV
+# Step 2: Clean up static cert-pv
+# ============================================================
+
+- name: Delete static cert-pv if exists
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolume
+    name: cert-pv
+  failed_when: false
+
+- name: Wait for cert-pv to be fully deleted
+  shell: kubectl get pv cert-pv --no-headers 2>/dev/null | wc -l
+  register: pv_static_check
+  until: pv_static_check.stdout | trim | int == 0
+  retries: 20
+  delay: 5
+  changed_when: false
+  failed_when: false
+
+# ============================================================
+# Step 3: Clean up cert-pvc and any dynamically bound PV
 # ============================================================
 
 - name: Check if cert-pvc exists
@@ -59,7 +85,7 @@
 - name: Patch cert-pvc finalizers to unblock deletion
   shell: >
     kubectl patch pvc cert-pvc -n "{{ core_ns }}"
-    -p '{"metadata":{"finalizers":[]}}' --type=merge
+    -p '{"metadata":{"finalizers":null}}' --type=merge
   when: cert_pvc_info.resources | length > 0
   failed_when: false
 
@@ -85,36 +111,84 @@
   delay: 5
   failed_when: false
 
-- name: Find PV bound to cert-pvc
+- name: Find any remaining PV bound to cert-pvc
   shell: kubectl get pv --no-headers | grep "{{ core_ns }}/cert-pvc" | awk '{print $1}'
-  register: cert_pv_name
+  register: cert_pv_dynamic
   changed_when: false
   failed_when: false
 
-- name: Patch PV finalizers to unblock deletion
+- name: Patch dynamic PV finalizers to unblock deletion
   shell: >
-    kubectl patch pv {{ cert_pv_name.stdout | trim }}
-    -p '{"metadata":{"finalizers":[]}}' --type=merge
-  when: cert_pv_name.stdout | trim | length > 0
+    kubectl patch pv {{ cert_pv_dynamic.stdout | trim }}
+    -p '{"metadata":{"finalizers":null}}' --type=merge
+  when: cert_pv_dynamic.stdout | trim | length > 0
   failed_when: false
 
-- name: Force delete PV bound to cert-pvc
-  shell: kubectl delete pv {{ cert_pv_name.stdout | trim }} --force --grace-period=0
-  when: cert_pv_name.stdout | trim | length > 0
+- name: Force delete dynamic PV bound to cert-pvc
+  shell: kubectl delete pv {{ cert_pv_dynamic.stdout | trim }} --force --grace-period=0
+  when: cert_pv_dynamic.stdout | trim | length > 0
   failed_when: false
 
-- name: Wait for PV to be fully deleted
+- name: Wait for dynamic PV to be fully deleted
   shell: kubectl get pv --no-headers | grep "{{ core_ns }}/cert-pvc" | wc -l
-  register: pv_check
-  until: pv_check.stdout | trim | int == 0
+  register: pv_dynamic_check
+  until: pv_dynamic_check.stdout | trim | int == 0
   retries: 30
   delay: 5
   changed_when: false
   failed_when: false
-  when: cert_pv_name.stdout | trim | length > 0
+  when: cert_pv_dynamic.stdout | trim | length > 0
 
 # ============================================================
-# Step 3: Deploy Free5GC via Helm
+# Step 4: Create static PV for cert-pvc
+# ============================================================
+
+- name: Ensure cert hostpath directory exists on core node
+  delegate_to: "{{ core_node_name }}"
+  file:
+    path: /var/lib/free5gc/cert
+    state: directory
+    mode: '0755'
+
+- name: Create static PV for cert-pvc
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: cert-pv
+        labels:
+          project: free5gc
+      spec:
+        capacity:
+          storage: 1Mi
+        accessModes:
+          - ReadOnlyMany
+        persistentVolumeReclaimPolicy: Delete
+        storageClassName: openebs-hostpath
+        hostPath:
+          path: /var/lib/free5gc/cert
+          type: DirectoryOrCreate
+        nodeAffinity:
+          required:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - "{{ core_node_name }}"
+
+- name: Wait for cert-pv to be Available
+  shell: kubectl get pv cert-pv --no-headers | awk '{print $5}'
+  register: pv_status
+  until: pv_status.stdout | trim == "Available"
+  retries: 20
+  delay: 5
+  changed_when: false
+
+# ============================================================
+# Step 5: Deploy Free5GC via Helm
 # ============================================================
 
 - name: Deploy free5gc using Helm
