@@ -223,7 +223,69 @@
             - SYS_MODULE
 
 # ============================================================
-# Step 6: Verify deployment matches the 5G profile
+# Step 6: Provision MongoDB subscribers from 5G profile
+# ============================================================
+
+- name: Wait for dbpython pod to be Running
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ core_ns }}"
+    label_selectors:
+      - app.kubernetes.io/name=free5gc-dbpython
+  register: dbpython_pod
+  until:
+    - dbpython_pod.resources | length > 0
+    - dbpython_pod.resources[0].status.phase == "Running"
+    - dbpython_pod.resources[0].status.containerStatuses |
+      selectattr('ready', 'equalto', true) | list | length ==
+      dbpython_pod.resources[0].status.containerStatuses | length
+  retries: 30
+  delay: 10
+
+- name: Wait for MongoDB to be ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ core_ns }}"
+    label_selectors:
+      - app.kubernetes.io/name=mongodb
+  register: mongodb_pod
+  until:
+    - mongodb_pod.resources | length > 0
+    - mongodb_pod.resources[0].status.phase == "Running"
+    - mongodb_pod.resources[0].status.containerStatuses |
+      selectattr('ready', 'equalto', true) | list | length ==
+      mongodb_pod.resources[0].status.containerStatuses | length
+  retries: 30
+  delay: 10
+
+- name: Find add_subscribers.py path in dbpython pod
+  shell: |
+    kubectl exec -n {{ core_ns }} deployment/free5gc-free5gc-dbpython-dbpython -- \
+      find / -name "add_subscribers.py" 2>/dev/null | head -1
+  register: subscribers_script_path
+  changed_when: false
+
+- name: Clean existing MongoDB subscribers
+  shell: |
+    kubectl exec -n {{ core_ns }} deployment/free5gc-free5gc-dbpython-dbpython -- \
+      python3 {{ subscribers_script_path.stdout | trim }} -a clean
+  changed_when: true
+
+- name: Add subscribers from 5G profile to MongoDB
+  shell: |
+    kubectl exec -n {{ core_ns }} deployment/free5gc-free5gc-dbpython-dbpython -- \
+      python3 {{ subscribers_script_path.stdout | trim }} -a add
+  register: add_subscribers_result
+  changed_when: true
+
+- name: Show add_subscribers output
+  debug:
+    msg: "{{ add_subscribers_result.stdout_lines }}"
+
+# ============================================================
+# Step 7: Verify deployment matches the 5G profile
 # ============================================================
 
 - name: Run free5gc profile verification
