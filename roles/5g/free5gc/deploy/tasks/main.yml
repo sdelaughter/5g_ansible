@@ -1,7 +1,7 @@
 ---
 - name: Load common variables
   include_vars:
-    file: "../../config/defaults/main.yml"
+    file: "../config/defaults/main.yml"
 
 - name: Ensure free5gc namespace exists
   kubernetes.core.k8s:
@@ -195,14 +195,14 @@
   when: rru == 'rfsim'
   kubernetes.core.helm:
     name: free5gc
-    chart_ref: "{{ [free5gc_repo_dest, 'charts', 'free5gc'] | path_join }}"
+    chart_ref: "{{ [repo_dest, 'charts', 'free5gc'] | path_join }}"
     release_namespace: "{{ core_ns }}"
     state: present
     wait: true
     atomic: true
     timeout: 1200s
     values_files:
-      - "{{ free5gc_repo_dest }}/values-profile-override.yaml"
+      - "{{ repo_dest }}/values-profile-override.yaml"
     values:
       nodeSelector:
         kubernetes.io/hostname: "{{ core_node_name }}"
@@ -221,6 +221,7 @@
           add:
             - NET_ADMIN
             - SYS_MODULE
+
 
 # ============================================================
 # Step 6: Provision MongoDB subscribers from 5G profile
@@ -266,6 +267,13 @@
       find / -name "add_subscribers.py" 2>/dev/null | head -1
   register: subscribers_script_path
   changed_when: false
+
+- name: Copy generated add_subscribers.py into dbpython pod
+  shell: |
+    kubectl cp {{ free5gc_repo_dest }}/docker/free5gc/free5gc-dbpython/add_subscribers.py \
+      {{ core_ns }}/$(kubectl get pod -n {{ core_ns }} -l app.kubernetes.io/name=free5gc-dbpython \
+      -o jsonpath='{.items[0].metadata.name}'):/free5gc/add_subscribers.py
+  changed_when: true
 
 - name: Clean existing MongoDB subscribers
   shell: |
