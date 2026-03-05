@@ -36,8 +36,8 @@
   changed_when: false
   ignore_errors: true
 
-- name: Start UE via jump host
-  shell: "ssh root@{{ ue_item }} 'start.sh -F {{ current_dnn }}'"
+- name: Stop then Start UE via jump host
+  shell: "ssh root@{{ ue_item }} 'stop.sh; start.sh -F {{ current_dnn }}'"
   when: current_dnn is defined and (check_ip_ready.stdout == "" or check_ip_ready.rc != 0)
   ignore_errors: "{{ ignore_errors | default(true) }}"
 
