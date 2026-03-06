@@ -116,17 +116,8 @@ def build_subscriber_data(ue_name, ue):
         'subscriptionData.authenticationData.authenticationSubscription': [{
             'authenticationManagementField': '8000',
             'authenticationMethod': '5G_AKA',
-            'milenage': {'op': {'encryptionAlgorithm': 0.0, 'encryptionKey': 0.0, 'opValue': ''}},
-            'opc': {
-                'encryptionAlgorithm': 0.0,
-                'encryptionKey': 0.0,
-                'opcValue': ue['opc']
-            },
-            'permanentKey': {
-                'encryptionAlgorithm': 0.0,
-                'encryptionKey': 0.0,
-                'permanentKeyValue': ue['key']
-            },
+            'encPermanentKey': ue['key'],
+            'encOpcKey': ue['opc'],
             'sequenceNumber': {
                 'sqn': '000000000000',
                 'sqnScheme': 'NON_TIME_BASED',
