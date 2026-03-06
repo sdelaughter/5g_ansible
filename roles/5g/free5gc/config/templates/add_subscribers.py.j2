@@ -127,7 +127,11 @@ def build_subscriber_data(ue_name, ue):
                 'encryptionKey': 0.0,
                 'permanentKeyValue': ue['key']
             },
-            'sequenceNumber': '16f3b3f70fc2',
+            'sequenceNumber': {
+                'sqn': '000000000000',
+                'sqnScheme': 'NON_TIME_BASED',
+                'lastIndexes': {'ausf': 0}
+            },
             'ueId': imsi_full
         }],
     }
