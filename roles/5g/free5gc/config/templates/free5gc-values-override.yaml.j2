@@ -20,18 +20,19 @@
 # ============================================================
 # Global: activate NGAP NodePort service (needed when ipvlan/eth0 is DOWN)
 # ============================================================
+
 global:
   n2network:
     enabled: true
     masterIf: "{{ nic_interface }}"
-   n3network:
+  n3network:
     enabled: true
     masterIf: "{{ nic_interface }}"
-   n4network:
+  n4network:
     masterIf: "{{ nic_interface }}"
-   n6network:
+  n6network:
     masterIf: "{{ nic_interface }}"
-   n9network:
+  n9network:
     masterIf: "{{ nic_interface }}"
   amf:
     service:
