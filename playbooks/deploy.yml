@@ -233,19 +233,6 @@
     - role: 5g/open5gs/deploy
       when: core == 'open5gs'
 
-############################################################################
-# Move this block where you want to restart with start-at-task=RESTART_HERE"
-#
-- hosts: localhost,core_node,ran_node
-  gather_facts: false
-  tasks:
-    - name: RESTART_HERE
-      ansible.builtin.meta: noop
-
-    - import_tasks: ../tasks/reload_booleans.yml
-#
-############################################################################
-
 - name: Deploy Free5gc
   hosts: core_node
   pre_tasks:
@@ -259,6 +246,19 @@
       when: core == 'free5gc'
     - role: 5g/free5gc/deploy
       when: core == 'free5gc'
+
+############################################################################
+# Move this block where you want to restart with start-at-task=RESTART_HERE"
+#
+- hosts: localhost,core_node,ran_node
+  gather_facts: false
+  tasks:
+    - name: RESTART_HERE
+      ansible.builtin.meta: noop
+
+    - import_tasks: ../tasks/reload_booleans.yml
+#
+############################################################################
 
 - name: Deploy OAI CN/RAN
   hosts: ran_node
@@ -276,32 +276,18 @@
     - role: 5g/oai/ran
       when: ran == 'oai'
 
-- name: Deploy srsRAN
-  hosts: ran_node
-  vars:
-    ue_count: 4
-  pre_tasks:
-    - name: Load 5G profile
-      include_vars:
-        file: "{{ playbook_dir }}/../group_vars/all/5g_profile_{{ fiveg_profile | default('default') }}.yaml"
-  roles:
-    - role: 5g/srsRAN/config
-      when: ran == 'srsRAN'
-    - role: 5g/srsRAN/deploy
-      when: ran == 'srsRAN'
-
 - name: Deploy ueransim
-  hosts: core_node # ueransim included on open5gs_k8s on core_node
+  hosts: ran_node
   pre_tasks:
     - name: Load 5G profile
       include_vars:
         file: "{{ playbook_dir }}/../group_vars/all/5g_profile_{{ fiveg_profile | default('default') }}.yaml"
+        name: fiveg
   roles:
     - role: 5g/ueransim/config
       when: ran == 'ueransim'
     - role: 5g/ueransim/deploy
       when: ran == 'ueransim'
-
 
 - name: Remove NoSchedule taint on Monitor node
   hosts: core_node
