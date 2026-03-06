@@ -12,6 +12,18 @@
     update: yes
     force: yes
 
+# Patch NAD templates: make gateway route conditional
+# (needed when masterIf has no IP in the NAD subnet, e.g. Flannel + physical NIC without IP)
+- name: Copy NAD patch script
+  ansible.builtin.copy:
+    src: patch_nads.py
+    dest: /tmp/patch_nads.py
+    mode: '0755'
+
+- name: Patch NAD templates to make gateway route conditional
+  ansible.builtin.command: python3 /tmp/patch_nads.py "{{ free5gc_repo_dest }}"
+  changed_when: true
+
 # Then apply the 5G profile settings on the repo
 
 - name: Load active 5G profile

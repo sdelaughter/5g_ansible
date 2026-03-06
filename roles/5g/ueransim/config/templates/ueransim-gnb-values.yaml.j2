@@ -12,9 +12,13 @@ global:
   n2network:
     enabled: true
     masterIf: "{{ nic_interface }}"
+    gatewayIP: ""
+    excludeIP: ""
   n3network:
     enabled: true
     masterIf: "{{ nic_interface }}"
+    gatewayIP: ""
+    excludeIP: ""
 
 gnb:
   enabled: true
