@@ -10,39 +10,25 @@
 
 global:
   n2network:
-    enabled: true
-    name: n2network
-    type: ipvlan
-    masterIf: eth0
-    subnetIP: {{ net.n2.subnet_ip }}
-    cidr: {{ net.n2.cidr }}
-    gatewayIP: {{ net.n2.gateway }}
-    excludeIP: {{ net.n2.gateway }}
+    enabled: false   # ipvlan disabled: eth0 is DOWN in Flannel/overlay setup
   n3network:
-    enabled: true
-    name: n3network
-    type: ipvlan
-    masterIf: eth0
-    subnetIP: {{ net.n3.subnet_ip }}
-    cidr: {{ net.n3.cidr }}
-    gatewayIP: {{ net.n3.gateway }}
-    excludeIP: {{ net.n3.gateway }}
+    enabled: false   # ipvlan disabled: eth0 is DOWN in Flannel/overlay setup
 
 gnb:
   enabled: true
 
   n2if:
-    ipAddress: {{ net.n2.gnb_ip }}
+    ipAddress: 0.0.0.0   # listen on all interfaces (Flannel eth0)
   n3if:
-    ipAddress: {{ net.n3.gnb_ip }}
+    ipAddress: 0.0.0.0   # listen on all interfaces (Flannel eth0)
 
   amf:
     n2if:
-      ipAddress: {{ net.n2.amf_ip }}
-      port: 38412
+      ipAddress: {{ net.n2.amf_ip }}  # -> "free5gc-free5gc-amf-amf-n2" service DNS
+      port: {{ net.n2.amf_ngap_port }}
     service:
       ngap:
-        enabled: false
+        enabled: true   # use NGAP NodePort service instead of ipvlan
 
   nodeSelector:
     kubernetes.io/hostname: "{{ ran_node_name }}"

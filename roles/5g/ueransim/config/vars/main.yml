@@ -8,7 +8,8 @@ ueransim_free5gc_network:
     cidr: 29
     gateway: "10.100.50.254"
     gnb_ip: "10.100.50.250"
-    amf_ip: "10.100.50.249"
+    amf_ip: "free5gc-free5gc-amf-amf-n2"  # NGAP NodePort service DNS name
+    amf_ngap_port: 38412
   n3:
     subnet_ip: "10.100.50.232"
     cidr: 29

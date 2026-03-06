@@ -16,6 +16,21 @@
   {{- "0%02x%s" | format(sst | int, resolve_sd(sd)) -}}
 {%- endmacro -%}
 
+
+# ============================================================
+# Global: activate NGAP NodePort service (needed when ipvlan/eth0 is DOWN)
+# ============================================================
+global:
+  amf:
+    service:
+      ngap:
+        enabled: true
+        name: amf-n2
+        port: 38412
+        nodeport: 31412
+        protocol: SCTP
+        type: NodePort
+
 # ============================================================
 # AMF
 # ============================================================
