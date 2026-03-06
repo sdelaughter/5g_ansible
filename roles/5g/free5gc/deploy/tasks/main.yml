@@ -187,6 +187,23 @@
   delay: 5
   changed_when: false
 
+
+# ============================================================
+# Step 4b: Clean up orphan resources not managed by Helm
+# ============================================================
+
+- name: Remove orphan NGAP service if not owned by Helm
+  shell: |
+    if kubectl get svc free5gc-free5gc-amf-amf-n2 -n {{ core_ns }}        -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null | grep -q "Helm"; then
+      echo "owned by Helm, skipping"
+    else
+      kubectl delete svc free5gc-free5gc-amf-amf-n2 -n {{ core_ns }} --ignore-not-found
+      echo "deleted orphan service"
+    fi
+  register: cleanup_ngap_svc
+  changed_when: "'deleted' in cleanup_ngap_svc.stdout"
+
+
 # ============================================================
 # Step 5: Deploy Free5GC via Helm
 # ============================================================
