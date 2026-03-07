@@ -12,8 +12,6 @@
     update: yes
     force: yes
 
-# Patch NAD templates: make gateway route conditional
-# (needed when masterIf has no IP in the NAD subnet, e.g. Flannel + physical NIC without IP)
 - name: Copy NAD patch script
   ansible.builtin.copy:
     src: patch_nads.py
@@ -24,36 +22,30 @@
   ansible.builtin.command: python3 /tmp/patch_nads.py "{{ free5gc_repo_dest }}"
   changed_when: true
 
-- name: Patch UPF wrapper.sh to create /etc/iproute2 if missing
+- name: Patch UPF wrapper.sh to create /etc/iproute2 if missing (upf only)
   ansible.builtin.replace:
-    path: "{{ item }}"
-    regexp: 'echo "1200 n6if" >> /etc/iproute2/rt_tables'
-    replace: 'mkdir -p /etc/iproute2 && echo "1200 n6if" >> /etc/iproute2/rt_tables'
-  loop:
-    - "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/upf/upf-configmap.yaml"
-    - "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/psaupf1/psaupf1-configmap.yaml"
-    - "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/psaupf2/psaupf2-configmap.yaml"
-  ignore_errors: true
-
-- name: Patch UPF wrapper.sh — iupf1 configmap also
-  ansible.builtin.replace:
-    path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/iupf1/iupf1-configmap.yaml"
+    path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/upf/upf-configmap.yaml"
     regexp: 'echo "1200 n6if" >> /etc/iproute2/rt_tables'
     replace: 'mkdir -p /etc/iproute2 && echo "1200 n6if" >> /etc/iproute2/rt_tables'
   ignore_errors: true
 
-- name: Patch iupf1 N3 addr to use n3if.ipAddress instead of 0.0.0.0
+- name: Patch iupf1 N3 addr to 0.0.0.0 so gtp5g listens on all interfaces (N3 + N9)
   ansible.builtin.replace:
     path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/iupf1/iupf1-configmap.yaml"
-    regexp: '(\s*)- addr: 0\.0\.0\.0(\s*\n\s*type: N3)'
-    replace: '\1- addr: {{ ''{{'' }} .n3if.ipAddress {{ ''}}'' }}\2'
+    regexp: '(\s*)- addr: \{\{[^}]*\.n3if\.ipAddress[^}]*\}\}(\s*\n\s*type: N3)'
+    replace: '\1- addr: 0.0.0.0\2'
+
+- name: Patch iupf1 wrapper.sh to remove spurious default routes
+  ansible.builtin.replace:
+    path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/iupf1/iupf1-configmap.yaml"
+    regexp: '(    iptables -A FORWARD -j ACCEPT)'
+    replace: '\1\n    ip route | grep "^default" | grep -v "eth0" | while read -r gw via ip dev iface rest; do ip route del default via $ip dev $iface 2>/dev/null || true; done'
 
 - name: Patch UPF securityContext to add SYS_ADMIN capability
   ansible.builtin.replace:
     path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/values.yaml"
     regexp: 'add: \["NET_ADMIN"\]'
     replace: 'add: ["NET_ADMIN", "SYS_ADMIN"]'
-
 
 - name: Copy UPF wrapper patch script
   ansible.builtin.copy:
