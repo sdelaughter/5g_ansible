@@ -50,7 +50,7 @@ def build_subscriber_data(ue_name, ue):
     sd = s["sd"]
     sst = s["sst"]
     sd_key = s["sd_key"]
-    snssai_key = f"0{sd_key}"
+    snssai_key = sd_key
     dnn = s["dnn"]
 
     return {
