@@ -21,16 +21,13 @@
 # Global: activate NGAP NodePort service (needed when ipvlan/eth0 is DOWN)
 # ============================================================
 
-{% set n2_masterIf = 'n2br' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else nic_interface %}
-{% set n3_masterIf = 'n3br' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else nic_interface %}
+{% set ran_masterIf = 'n3br' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else nic_interface %}
 
 global:
   n2network:
-    enabled: true
-    masterIf: "{{ n2_masterIf }}"
+    masterIf: "{{ ran_masterIf }}"
   n3network:
-    enabled: true
-    masterIf: "{{ n3_masterIf }}"
+    masterIf: "{{ ran_masterIf }}"
   n4network:
     masterIf: "{{ nic_interface }}"
   n6network:
