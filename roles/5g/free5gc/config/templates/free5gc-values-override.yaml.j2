@@ -102,6 +102,10 @@ free5gc-amf:
 {% for slice in profile.slices %}
               - sst: {{ slice.sst | int }}
                 sd: {{ resolve_sd(slice.sd) }}
+{% if slice.sd == "EMPTY" %}
+              - sst: {{ slice.sst | int }}
+                sd: ""
+{% endif %}
 {% endfor %}
         supportDnnList:
 {% for slice in profile.slices %}
