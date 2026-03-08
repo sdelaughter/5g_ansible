@@ -52,13 +52,30 @@ def build_subscriber_data(ue_name, ue):
     sd_key = s["sd_key"]
     snssai_key = sd_key
     dnn = s["dnn"]
+    is_empty_sd = (sd == "ffffff")
+
+    # Build snssai infos — add empty-sd alias for EMPTY slices
+    subscribed_snssai_infos = {
+        snssai_key: {'dnnInfos': [{'dnn': dnn}]}
+    }
+    sm_policy_snssai_data = {
+        snssai_key: {
+            'smPolicyDnnData': {dnn: {'dnn': dnn}},
+            'snssai': {'sd': sd, 'sst': float(sst)}
+        }
+    }
+    if is_empty_sd:
+        empty_key = "%02x" % sst  # "01" — no SD
+        subscribed_snssai_infos[empty_key] = {'dnnInfos': [{'dnn': dnn}]}
+        sm_policy_snssai_data[empty_key] = {
+            'smPolicyDnnData': {dnn: {'dnn': dnn}},
+            'snssai': {'sd': '', 'sst': float(sst)}
+        }
 
     return {
         'subscriptionData.provisionedData.smfSelectionSubscriptionData': [{
             'servingPlmnId': PLMN,
-            'subscribedSnssaiInfos': {
-                snssai_key: {'dnnInfos': [{'dnn': dnn}]}
-            },
+            'subscribedSnssaiInfos': subscribed_snssai_infos,
             'ueId': imsi_full
         }],
         'subscriptionData.provisionedData.smData': [{
@@ -92,12 +109,7 @@ def build_subscriber_data(ue_name, ue):
             'ueId': imsi_full
         }],
         'policyData.ues.smData': [{
-            'smPolicySnssaiData': {
-                snssai_key: {
-                    'smPolicyDnnData': {dnn: {'dnn': dnn}},
-                    'snssai': {'sd': sd, 'sst': float(sst)}
-                }
-            },
+            'smPolicySnssaiData': sm_policy_snssai_data,
             'ueId': imsi_full
         }],
         'policyData.ues.amData': [{
@@ -126,6 +138,7 @@ def build_subscriber_data(ue_name, ue):
             'ueId': imsi_full
         }],
     }
+
 
 
 if args.action == 'list':
