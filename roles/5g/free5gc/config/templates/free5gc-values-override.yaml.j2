@@ -190,6 +190,16 @@ free5gc-smf:
                 dns:
                   ipv4: 8.8.8.8
                   ipv6: 2001:4860:4860::8888
+{% if slice.sd == "EMPTY" %}
+          - sNssai:
+              sst: {{ slice.sst | int }}
+              sd: ""
+            dnnInfos:
+              - dnn: {{ slice.dnn }}
+                dns:
+                  ipv4: 8.8.8.8
+                  ipv6: 2001:4860:4860::8888
+{% endif %}
 {% endfor %}
         plmnList:
           - mcc: {{ profile.plmn.mcc }}
@@ -208,6 +218,13 @@ free5gc-smf:
                     sd: {{ resolve_sd(slice.sd) }}
                   dnnUpfInfoList:
                     - dnn: {{ slice.dnn }}
+{% if slice.sd == "EMPTY" %}
+                - sNssai:
+                    sst: {{ slice.sst | int }}
+                    sd: ""
+                  dnnUpfInfoList:
+                    - dnn: {{ slice.dnn }}
+{% endif %}
 {% endfor %}
               interfaces:
                 - interfaceType: N3
@@ -236,6 +253,15 @@ free5gc-smf:
                     - dnn: {{ slice.dnn }}
                       pools:
                         - cidr: {{ slice.ip_prefix }}.0/25
+{% if slice.sd == "EMPTY" %}
+                - sNssai:
+                    sst: {{ slice.sst | int }}
+                    sd: ""
+                  dnnUpfInfoList:
+                    - dnn: {{ slice.dnn }}
+                      pools:
+                        - cidr: {{ slice.ip_prefix }}.0/25
+{% endif %}
 {% endfor %}
               interfaces:
                 - interfaceType: N9
@@ -257,6 +283,15 @@ free5gc-smf:
                     - dnn: {{ slice.dnn }}
                       pools:
                         - cidr: {{ slice.ip_prefix }}.128/25
+{% if slice.sd == "EMPTY" %}
+                - sNssai:
+                    sst: {{ slice.sst | int }}
+                    sd: ""
+                  dnnUpfInfoList:
+                    - dnn: {{ slice.dnn }}
+                      pools:
+                        - cidr: {{ slice.ip_prefix }}.128/25
+{% endif %}
 {% endfor %}
               interfaces:
                 - interfaceType: N9
@@ -317,6 +352,10 @@ free5gc-nssf:
 {% for slice in profile.slices %}
               - sst: {{ slice.sst | int }}
                 sd: {{ resolve_sd(slice.sd) }}
+{% if slice.sd == "EMPTY" %}
+              - sst: {{ slice.sst | int }}
+                sd: ""
+{% endif %}
 {% endfor %}
         amfList: []
         taList:
@@ -330,6 +369,10 @@ free5gc-nssf:
 {% for slice in profile.slices %}
               - sst: {{ slice.sst | int }}
                 sd: {{ resolve_sd(slice.sd) }}
+{% if slice.sd == "EMPTY" %}
+              - sst: {{ slice.sst | int }}
+                sd: ""
+{% endif %}
 {% endfor %}
         mappingListFromPlmn: []
 
