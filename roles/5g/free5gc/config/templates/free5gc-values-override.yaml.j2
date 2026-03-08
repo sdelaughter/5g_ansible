@@ -23,16 +23,27 @@
 
 {% set ran_masterIf = 'n3br' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else nic_interface %}
 {% set n2n3_type = 'macvlan' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else 'ipvlan' %}
+{% set multinode = (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) %}
 
 global:
   n2network:
     enabled: true
     masterIf: "{{ ran_masterIf }}"
     type: "{{ n2n3_type }}"
+{% if multinode %}
+    subnetIP: "10.100.50.232"
+    cidr: "29"
+    gatewayIP: "10.100.50.238"
+{% endif %}
   n3network:
     enabled: true
     masterIf: "{{ ran_masterIf }}"
     type: "{{ n2n3_type }}"
+{% if multinode %}
+    subnetIP: "10.100.50.232"
+    cidr: "29"
+    gatewayIP: "10.100.50.238"
+{% endif %}
   n4network:
     masterIf: "{{ nic_interface }}"
   n6network:
@@ -55,6 +66,10 @@ global:
 # ============================================================
 free5gc-amf:
   amf:
+{% if multinode %}
+    n2if:
+      ipAddress: "10.100.50.234"
+{% endif %}
     configuration:
       configuration: |-
         amfName: AMF
