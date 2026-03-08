@@ -33,7 +33,7 @@ global:
 {% if multinode %}
     subnetIP: "10.100.50.232"
     cidr: "29"
-    gatewayIP: "10.100.50.238"
+    gatewayIP: ""
 {% endif %}
   n3network:
     enabled: true
@@ -42,7 +42,7 @@ global:
 {% if multinode %}
     subnetIP: "10.100.50.232"
     cidr: "29"
-    gatewayIP: "10.100.50.238"
+    gatewayIP: ""
 {% endif %}
   n4network:
     masterIf: "{{ nic_interface }}"
