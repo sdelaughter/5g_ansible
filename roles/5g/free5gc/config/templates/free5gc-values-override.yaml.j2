@@ -22,7 +22,7 @@
 # ============================================================
 
 {% set ran_masterIf = 'n3br' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else nic_interface %}
-{% set n2n3_type = 'macvlan' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else 'ipvlan' %}
+{% set n2n3_type = 'ovs' if (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) else 'ipvlan' %}
 {% set multinode = (core_node_name is defined and ran_node_name is defined and core_node_name != ran_node_name) %}
 
 global:
