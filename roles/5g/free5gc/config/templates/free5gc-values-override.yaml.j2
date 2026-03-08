@@ -39,12 +39,22 @@ global:
     enabled: true
     masterIf: "{{ nic_interface }}"
     type: "ipvlan"
+{% if multinode %}
+    subnetIP: "10.100.50.0"
+    cidr: "24"
+    gatewayIP: ""
+{% endif %}
   n4network:
     masterIf: "{{ nic_interface }}"
   n6network:
     masterIf: "{{ nic_interface }}"
   n9network:
     masterIf: "{{ nic_interface }}"
+{% if multinode %}
+    subnetIP: "10.100.50.0"
+    cidr: "24"
+    gatewayIP: ""
+{% endif %}
 {% if multinode %}
   amf:
     n2if:
