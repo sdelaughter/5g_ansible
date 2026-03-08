@@ -31,8 +31,8 @@ global:
     masterIf: "{{ n2_masterIf }}"
     type: "{{ n2_type }}"
 {% if multinode %}
-    subnetIP: "10.100.50.232"
-    cidr: "29"
+    subnetIP: "10.100.50.0"
+    cidr: "24"
     gatewayIP: ""
 {% endif %}
   n3network:
