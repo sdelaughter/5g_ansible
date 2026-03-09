@@ -1,4 +1,5 @@
 ---
+
 - name: Check if yq is already installed
   ansible.builtin.stat:
     path: "{{ yq_bin_path }}"
@@ -43,12 +44,6 @@
       - "PLMN: {{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}"
       - "TAC: {{ fiveg.plmn.tac }}"
 
-- name: Uninstall existing srsran-gnb Helm release if present
-  ansible.builtin.shell: >
-    helm -n {{ ran_ns }} uninstall srsran-gnb || true
-  changed_when: true
-  ignore_errors: true
-
 - name: Initialize gnb_slices and amf_slices
   set_fact:
     gnb_slices: []
@@ -75,24 +70,6 @@
       .gnbConfig.cell_cfg.slicing = {{ gnb_slices | to_json }}
     ' "{{ values_file }}"
 
-- name: Update AMF address, gNB N3 IP and n3networkName for open5gs
-  ansible.builtin.shell: >
-    {{ yq_bin_path }} eval -i '
-      .gnbConfig.cu_cp.amf.addr = "{{ srsran_open5gs_network.n2.amf_ip }}" |
-      .gnbConfig.cu_cp.amf.port = {{ srsran_open5gs_network.n2.amf_port }} |
-      .gnbConfig.cu_cp.amf.bind_addr = "0.0.0.0" |
-      .gnbConfig.cu_up.ngu.socket = [{"bind_addr": "{{ srsran_open5gs_network.n3.gnb_ip }}"}] |
-      .gnbIp = "{{ srsran_open5gs_network.n3.gnb_ip }}" |
-      .n3networkName = "n3network"
-    ' "{{ values_file }}"
-
-- name: Fix device_args for rfsim multi-UE mode
-  ansible.builtin.shell: >
-    {{ yq_bin_path }} eval -i '
-      .gnbConfig.ru_sdr.device_args = "tx_port0=tcp://127.0.0.1:2000,tx_port1=tcp://127.0.0.1:2001,tx_port2=tcp://127.0.0.1:2002,rx_port0=tcp://127.0.0.1:2100,rx_port1=tcp://127.0.0.1:2200,rx_port2=tcp://127.0.0.1:2300,base_srate=23.04e6"
-    ' "{{ values_file }}"
-  when: rru == 'rfsim'
-  
 - name: Force remove quotes on SD values (Post-processing)
   replace:
     path: "{{ values_file }}"

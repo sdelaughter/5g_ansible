@@ -3,10 +3,6 @@
   include_vars:
     file: "../../common/defaults/main.yml"
 
-- name: Normalize flags
-  ansible.builtin.set_fact:
-    mon_enabled: "{{ (monitoring_enabled | default(false)) | bool }}"
-
 - name: Remove existing srsRAN Helm directory to ensure clean state
   ansible.builtin.file:
     path: "{{ repo_dest }}"
@@ -75,50 +71,34 @@
     msg: "Values file not found: {{ values_file }}"
   when: not values_stat.stat.exists
 
-- name: Check if yq is already installed
-  ansible.builtin.stat:
-    path: "{{ yq_bin_path }}"
-  register: yq_bin
+- name: Apply 5G profile to gNB and UE configs
+  include_tasks: apply_5g_profile.yaml
 
-- name: Download yq binary
-  ansible.builtin.shell: |
-    set -e
-    if command -v curl >/dev/null 2>&1; then
-      curl -L --fail "{{ yq_url }}" -o "{{ yq_bin_path }}"
-    elif command -v wget >/dev/null 2>&1; then
-      wget -O "{{ yq_bin_path }}" "{{ yq_url }}"
-    else
-      echo "Neither curl nor wget found" >&2
-      exit 1
-    fi
-  args:
-    creates: "{{ yq_bin_path }}"
-  when: not yq_bin.stat.exists
-  become: true
+- name: Update AMF address, gNB N3 IP and n3networkName 
+  ansible.builtin.shell: >
+    {{ yq_bin_path }} eval -i '
+      .gnbConfig.cu_cp.amf.addr = "{{ srsran_network.n2.amf_ip }}" |
+      .gnbConfig.cu_cp.amf.port = {{ srsran_network.n2.amf_port }} |
+      .gnbConfig.cu_cp.amf.bind_addr = "0.0.0.0" |
+      .gnbConfig.cu_up.ngu.socket = [{"bind_addr": "{{ srsran_network.n3.gnb_ip }}"}] |
+      .gnbIp = "{{ srsran_network.n3.gnb_ip }}" |
+      .n3networkName = "{{ n3networkName }}"
+    ' "{{ values_file }}"
 
-- name: Ensure yq is executable
-  ansible.builtin.file:
-    path: "{{ yq_bin_path }}"
-    mode: '0755'
-    state: file
-  become: true
+- name: Fix device_args for rfsim multi-UE mode
+  ansible.builtin.shell: >
+    {{ yq_bin_path }} eval -i '
+      .gnbConfig.ru_sdr.device_args = "tx_port0=tcp://{{ srsran_network.n3.gnb_ip }}:2000,tx_port1=tcp://{{ srsran_network.n3.gnb_ip }}:2001,tx_port2=tcp://{{ srsran_network.n3.gnb_ip }}:2002,rx_port0=tcp://{{ srsran_network.n3.gnb_ip }}:2100,rx_port1=tcp://{{ srsran_network.n3.gnb_ip }}:2200,rx_port2=tcp://{{ srsran_network.n3.gnb_ip }}:2300,base_srate=23.04e6"
+    ' "{{ values_file }}"
 
-- name: Load active 5G profile
-  ansible.builtin.include_vars:
-    file: "{{ playbook_dir }}/../group_vars/all/5g_profile_{{ fiveg_profile | default('default') }}.yaml"
-    name: fiveg
+- name: Patch gnb deployment template - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
 
-- name: Validate PLMN
-  assert:
-    that:
-      - fiveg.plmn.mcc is defined
-      - fiveg.plmn.mnc is defined
-      - fiveg.plmn.tac is defined
-
-- name: Configure srsRAN for free5gc
-  ansible.builtin.include_tasks: config_free5gc.yml
-  when: core == 'free5gc'
-
-- name: Configure srsRAN for open5gs
-  ansible.builtin.include_tasks: config_open5gs.yml
-  when: core == 'open5gs'
+- name: Patch srsue deployment template - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
