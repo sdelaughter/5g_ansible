@@ -24,7 +24,6 @@ srsran_free5gc_network:
     amf_port: 31412
   n3:
     gnb_ip: "10.100.50.236"  # same as ueransim n3 gnb_ip
-
 # Network config for srsRAN + open5gs
 srsran_open5gs_network:
   n2:
@@ -32,7 +31,18 @@ srsran_open5gs_network:
     amf_port: 31412
   n3:
     gnb_ip: "10.100.50.236"  # same as ueransim n3 gnb_ip
+srsran_network: "{{ srsran_free5gc_network if core == 'open5gs' else srsran_open5gs_network }}"
 
 # Multus NetworkAttachmentDefinition names
 free5gc_n3_nad_name: "n3network-free5gc-free5gc-upf"
 open5gs_n3_nad_name: "n3network"
+n3_nad_name_map:
+  open5gs: "{{ free5gc_n3_nad_name }}"
+  free5gc: "{{ open5gs_n3_nad_name }}"
+n3_nad_name: "{{ n3_nad_name_map[core] }}"
+
+# N3 network name
+n3networkName_map: 
+  free5gc: "n3network-free5gc-free5gc-upf"
+  open5gs: "n3network"
+n3networkName: "{{ n3networkName_map[core] }}"
