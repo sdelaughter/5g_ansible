@@ -60,6 +60,12 @@
     values_files:
       - "{{ values_file }}"
 
+- name: Patch srsue deployment template - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
+
 - name: Deploy srsRAN gNB via Helm (physical RRU)
   when: rru != 'rfsim'
   include_tasks: deploy_with_check.yml

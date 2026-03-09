@@ -47,17 +47,18 @@
 - name: Deploy each srsUE pod as separate Helm release
   when: rru == "rfsim"
   kubernetes.core.helm:
-    name: "srsue-{{ item.name }}"           # Unique release name per UE
-    chart_ref: "{{ [repo_dest_abs, 'charts', 'srsue'] | path_join }}" # Path to srsUE Helm chart
-    release_namespace: "{{ ran_ns }}"       # Deployment namespace
-    state: present                          # Ensure the release is installed
-    wait: true                              # Wait for pod readiness
-    values:                                 # Specific values for this UE
-      imsi: "{{ item.imsi }}"               # IMSI from profile
-      k: "{{ fiveg.security.full_key }}"    # UE K key
-      opc: "{{ fiveg.security.opc }}"       # UE OPC
-      apn: "{{ item.dnn }}"                 # DNN slice
+    name: "srsue-{{ item.name }}"
+    chart_ref: "{{ [repo_dest_abs, 'charts', 'srsue'] | path_join }}"
+    release_namespace: "{{ ran_ns }}"
+    state: present
+    wait: true
+    values:
+      imsi: "{{ item.imsi }}"
+      k: "{{ fiveg.security.full_key }}"
+      opc: "{{ fiveg.security.opc }}"
+      apn: "{{ item.dnn }}"
+      n3networkName: "{{ free5gc_n3_nad_name | default('n3network') }}"
       zmq:
-        tx_port: "{{ item.tx_port }}"       # Unique TX port for this UE
-        rx_port: "{{ item.rx_port }}"       # RX port on gNB (can be shared)
+        tx_port: "{{ item.tx_port }}"
+        rx_port: "{{ item.rx_port }}"
   loop: "{{ ue_list }}"
