@@ -37,8 +37,8 @@ global:
 {% endif %}
   n3network:
     enabled: true
-    masterIf: "{{ nic_interface }}"
-    type: "ipvlan"
+    masterIf: "{{ 'n3br' if multinode else nic_interface }}"
+    type: "{{ 'ovs' if multinode else 'ipvlan' }}"
 {% if multinode %}
     subnetIP: "10.100.50.0"
     cidr: "24"

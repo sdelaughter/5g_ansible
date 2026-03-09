@@ -28,6 +28,16 @@
   ansible.builtin.command: python3 /tmp/patch_amf_n2_nad.py "{{ free5gc_repo_dest }}"
   changed_when: true
 
+- name: Copy UPF N3 NAD OVS patch script
+  ansible.builtin.copy:
+    src: patch_iupf_n3_nad.py
+    dest: /tmp/patch_iupf_n3_nad.py
+    mode: '0755'
+
+- name: Patch UPF N3 NAD to support OVS CNI (multinode)
+  ansible.builtin.command: python3 /tmp/patch_iupf_n3_nad.py "{{ free5gc_repo_dest }}"
+  changed_when: true
+
 - name: Patch NAD templates to make gateway route conditional
   ansible.builtin.command: python3 /tmp/patch_nads.py "{{ free5gc_repo_dest }}"
   changed_when: true
