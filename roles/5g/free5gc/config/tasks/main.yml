@@ -55,11 +55,11 @@
     regexp: '(\s*)- addr: \{\{[^}]*\.n3if\.ipAddress[^}]*\}\}(\s*\n\s*type: N3)'
     replace: '\1- addr: 0.0.0.0\2'
 
-- name: Patch iupf1 wrapper.sh to remove spurious default routes
+- name: Patch iupf1 wrapper.sh to remove spurious default routes and fix N9 routing
   ansible.builtin.replace:
     path: "{{ free5gc_repo_dest }}/charts/free5gc/charts/free5gc-upf/templates/iupf1/iupf1-configmap.yaml"
     regexp: '(    iptables -A FORWARD -j ACCEPT)'
-    replace: '\1\n    ip route | grep "^default" | grep -v "eth0" | while read -r gw via ip dev iface rest; do ip route del default via $ip dev $iface 2>/dev/null || true; done'
+    replace: '\1\n    ip route del default dev n3 2>/dev/null || true\n    ip route | grep "^default" | grep -v "eth0" | while read -r gw via ip dev iface rest; do ip route del default via $ip dev $iface 2>/dev/null || true; done\n    ip route add 10.100.50.224/29 dev n9 2>/dev/null || true'
 
 - name: Patch UPF securityContext to add SYS_ADMIN capability
   ansible.builtin.replace:
