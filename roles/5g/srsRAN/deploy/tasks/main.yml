@@ -1,19 +1,24 @@
 ---
-- name: Deploy srsRAN gNB
-  include_tasks: deploy_gnb.yml
+- name: Deploy srsRAN for free5gc
+  ansible.builtin.include_tasks: deploy_free5gc.yml
+  when: core == 'free5gc'
 
-- name: Deploy Telegraf
-  include_tasks: deploy_telegraf.yml
+- name: Deploy srsRAN for open5gs
+  ansible.builtin.include_tasks: deploy_open5gs.yml
+  when: core == 'open5gs'
 
-- name: Deploy srsRAN UEs
-  include_tasks: deploy_srsues.yml
-  when: rru == 'rfsim'
-
-- name: Summary (Non-RFSIM)
-  ansible.builtin.debug:
-    msg:
-      - "gNB deployed via Helm chart 'srsran-gnb' in namespace {{ ran_ns }}"
-      - "Telegraf if deployed via Helm chart 'telegraf' in namespace {{ ran_ns }}"
-      - "UE deployment skipped (rru={{ rru }})"
-  when: rru != 'rfsim'
+#- name: Deploy Telegraf
+#  include_tasks: deploy_telegraf.yml
+#
+#- name: Deploy srsRAN UEs
+#  include_tasks: deploy_srsues.yml
+#  when: rru == 'rfsim'
+#
+#- name: Summary (Non-RFSIM)
+#  ansible.builtin.debug:
+#    msg:
+#      - "gNB deployed via Helm chart 'srsran-gnb' in namespace {{ ran_ns }}"
+#      - "Telegraf if deployed via Helm chart 'telegraf' in namespace {{ ran_ns }}"
+#      - "UE deployment skipped (rru={{ rru }})"
+#  when: rru != 'rfsim'
 
