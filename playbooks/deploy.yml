@@ -97,11 +97,6 @@
     - role: setup/k8s/k8s_setup
     - role: setup/k8s/k8s_env
     - role: setup/optimization/cpu
-
-# not for monitor_node
-- name: Common sopnodes setup
-  hosts: core_node,ran_node,monitor_node
-  roles:
     - role: setup/ovs
       when: not fhi72
 
@@ -209,19 +204,6 @@
     - role: setup/sriov_nnp_create
       when: fhi72 and f3_ran
 
-############################################################################
-# Move this block where you want to restart with start-at-task=RESTART_HERE"
-#
-- hosts: localhost,core_node,ran_node
-  gather_facts: false
-  tasks:
-    - name: RESTART_HERE
-      ansible.builtin.meta: noop
-
-    - import_tasks: ../tasks/reload_booleans.yml
-#
-############################################################################
-
 - name: Configure GRE Tunnel From Core Node to RAN Node
   hosts: core_node
   roles:
@@ -276,8 +258,21 @@
     - role: 5g/oai/ran
       when: ran == 'oai'
 
+############################################################################
+# Move this block where you want to restart with start-at-task=RESTART_HERE"
+#
+- hosts: localhost,core_node,ran_node
+  gather_facts: false
+  tasks:
+    - name: RESTART_HERE
+      ansible.builtin.meta: noop
+
+    - import_tasks: ../tasks/reload_booleans.yml
+#
+############################################################################
+
 - name: Deploy ueransim
-  hosts: ran_node
+  hosts: core_node # use ueransim repo included within open5gs_k8s|free5gc-helm already on core_node
   pre_tasks:
     - name: Load 5G profile
       include_vars:
