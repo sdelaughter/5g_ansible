@@ -37,12 +37,13 @@
                   f"tcp://{GNB_IP}:2000", 100, False, -1)
               throttle_dl = blocks.throttle(gr.sizeof_gr_complex, SAMP_RATE / SLOW_DOWN)
               self.connect(gnb_src, throttle_dl)
-              for i in range(nof_ues):
+	      for i in range(nof_ues):
                   port = 2100 + i * 100
+                  passthrough = blocks.multiply_const_cc(1.0)
                   ue_sink = zeromq.rep_sink(
                       gr.sizeof_gr_complex, 1,
-                      f"tcp://{UE_IPS[0]}:{port}", 100, False, -1) # UE_IPS[i] → UE_IPS[0]
-                  self.connect(throttle_dl, ue_sink)
+                      f"tcp://{UE_IPS[0]}:{port}", 100, False, -1)
+                  self.connect(throttle_dl, passthrough, ue_sink)
               adder = blocks.add_cc(1)
               for i in range(nof_ues):
                   port = 2101 + i * 100
@@ -178,3 +179,9 @@
     path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
     regexp: '"name":\s*"n3network"'
     replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
+
+- name: Patch gNB deployment - add low_phy_dl_throttling
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
+    regexp: '/usr/local/bin/gnb -c /srsran/config/srsran-gnb.yaml'
+    replace: '/usr/local/bin/gnb -c /srsran/config/srsran-gnb.yaml --ru_sdr.expert_cfg.low_phy_dl_throttling=0.9'
