@@ -112,22 +112,22 @@
         index: 1
         imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE18.imsi_suffix }}"
         dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE18.slice) | map(attribute='dnn') | first }}"
-        tx_port: 2100
-        rx_port: 2000
+        tx_port: 2101
+        rx_port: 2100
         ue_ip: "{{ srsran_network.n3.ue_ips[0] }}"
       - name: ue2
         index: 2
         imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE19.imsi_suffix }}"
         dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE19.slice) | map(attribute='dnn') | first }}"
-        tx_port: 2200
-        rx_port: 2001
+        tx_port: 2201
+        rx_port: 2200
         ue_ip: "{{ srsran_network.n3.ue_ips[1] }}"
       - name: ue3
         index: 3
         imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE20.imsi_suffix }}"
         dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE20.slice) | map(attribute='dnn') | first }}"
-        tx_port: 2300
-        rx_port: 2002
+        tx_port: 2301
+        rx_port: 2300
         ue_ip: "{{ srsran_network.n3.ue_ips[2] }}"
   when: rru == 'rfsim'
 

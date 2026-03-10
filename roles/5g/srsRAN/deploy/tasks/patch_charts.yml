@@ -33,11 +33,11 @@
           def __init__(self, nof_ues):
               gr.top_block.__init__(self, "MultiUE ZMQ Broker")
 
-              # DL: gNB TX (:2000) -> copy to each UE RX (:2100,:2200,:2300)
+              # DL: req_source connect gNB:2000 -> rep_sink bind UE:2100/2200/2300
+              # UE rx_port doit pointer vers UE_IP:2100 (GNU Radio bind)
               gnb_src = zeromq.req_source(
                   gr.sizeof_gr_complex, 1,
                   f"tcp://{GNB_IP}:2000", 100, False, -1)
-
               for i in range(nof_ues):
                   port = 2100 + i * 100
                   ue_sink = zeromq.rep_sink(
@@ -45,18 +45,20 @@
                       f"tcp://{UE_IPS[i]}:{port}", 100, False, -1)
                   self.connect(gnb_src, ue_sink)
 
-              # UL: each UE TX (:2101,:2201,:2301) -> add -> gNB RX (:2001)
+              # UL: UE tx_port bind UE:2101/2201/2301
+              # pull_source connect (bind=False) vers UE TX
+              # -> adder -> rep_sink bind UE[0]:2001 (gNB rx_port connect ici)
               adder = blocks.add_cc(1)
               for i in range(nof_ues):
                   port = 2101 + i * 100
-                  ue_src = zeromq.rep_source(
+                  ue_src = zeromq.pull_source(
                       gr.sizeof_gr_complex, 1,
-                      f"tcp://{UE_IPS[i]}:{port}", 100, False, -1)
+                      f"tcp://{UE_IPS[i]}:{port}", 100, False, -1, False)
                   self.connect(ue_src, (adder, i))
 
-              gnb_sink = zeromq.req_sink(
+              gnb_sink = zeromq.rep_sink(
                   gr.sizeof_gr_complex, 1,
-                  f"tcp://{GNB_IP}:2001", 100, False, -1)
+                  f"tcp://{UE_IPS[0]}:2001", 100, False, -1)
               self.connect(adder, gnb_sink)
 
       if __name__ == "__main__":
