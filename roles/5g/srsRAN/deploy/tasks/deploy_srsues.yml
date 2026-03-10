@@ -32,6 +32,16 @@
   ansible.builtin.debug:
     msg: "Deploying {{ ue_list | length }} UE(s): {{ ue_list | map(attribute='name') | list }}"
 
+- name: Uninstall existing srsUE Helm releases
+  when: rru == "rfsim"
+  kubernetes.core.helm:
+    name: "srsue-{{ item.name }}"
+    release_namespace: "{{ ran_ns }}"
+    state: absent
+    wait: true
+  loop: "{{ ue_list_full }}"  # utilise ue_list_full pour désinstaller tous les UEs même si ue_count < 3
+  failed_when: false
+  
 - name: Clean old ConfigMap for this UE release
   when: rru == "rfsim"
   kubernetes.core.k8s:
