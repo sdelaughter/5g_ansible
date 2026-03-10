@@ -57,8 +57,7 @@ data:
       },
     {{ '{{-' }} end {{ '}}' }}
     }
-
-    UE_TEMPLATE = """[rf]
+UE_TEMPLATE = """[rf]
     freq_offset = 0
     tx_gain = 80
     rx_gain = 40
@@ -68,7 +67,6 @@ data:
     device_args = tx_port={tx_port},rx_port={rx_port},base_srate=11.52e6
 
     [rat.eutra]
-    dl_earfcn = 2850
     nof_carriers = 0
 
     [rat.nr]
@@ -76,6 +74,8 @@ data:
     nof_carriers = 1
     max_nof_prb = 106
     nof_prb = 106
+    dl_nr_arfcn = 368500
+    ssb_nr_arfcn = 368410
 
     [log]
     all_level = warning
