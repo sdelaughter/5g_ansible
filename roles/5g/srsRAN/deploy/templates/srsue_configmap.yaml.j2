@@ -65,10 +65,8 @@ UE_TEMPLATE = """[rf]
     nof_antennas = 1
     device_name = zmq
     device_args = tx_port={tx_port},rx_port={rx_port},base_srate=11.52e6
-
     [rat.eutra]
     nof_carriers = 0
-
     [rat.nr]
     bands = 3
     nof_carriers = 1
@@ -76,14 +74,12 @@ UE_TEMPLATE = """[rf]
     nof_prb = 106
     dl_nr_arfcn = 368500
     ssb_nr_arfcn = 368410
-
     [log]
     all_level = warning
     phy_lib_level = none
     all_hex_limit = 32
     filename = {log_file}
     file_max_size = 1000
-
     [usim]
     mode = soft
     algo = milenage
@@ -91,19 +87,15 @@ UE_TEMPLATE = """[rf]
     k    = {k}
     imsi = {imsi}
     imei = 356938035643803
-
     [rrc]
     release = 15
     ue_category = 4
-
     [nas]
     apn = {apn}
     apn_protocol = ipv4
-
     [gw]
     ip_devname = tun_srsue
     ip_netmask = 255.255.255.0
-
     [gui]
     enable = false
     """
