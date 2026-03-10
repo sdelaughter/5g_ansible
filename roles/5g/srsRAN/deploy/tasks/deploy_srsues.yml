@@ -4,160 +4,106 @@
 # RFSIM only - up to 3 UEs on a single radio channel
 # ------------------------------
 
-- name: Assert ue_list is defined (must be set by config role)
-  ansible.builtin.assert:
-    that:
-      - ue_list is defined
-      - ue_list | length > 0
-    fail_msg: "ue_list is not defined - ensure config role ran before deploy"
+- name: Kill existing processes if any
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} --
+    /bin/sh -lc "pkill -9 srsue; pkill -9 python3; true"
+  changed_when: true
+  failed_when: false
 
-- name: Debug UE list
+# --- Broker en premier ---
+
+- name: Start GNU Radio broker in tmux window 'gnu'
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} --
+    /bin/sh -lc "
+      tmux list-windows -t ran | grep -q '^\s*[0-9]\+: gnu\b' \
+        && tmux kill-window -t ran:gnu || true;
+      tmux new-window -t ran -n gnu \
+        'bash -lc \"/srsran/config/start_gnu.sh {{ ue_count }} 2>&1 | tee /var/log/gnu_multi_ue.log\"'
+    "
+  changed_when: true
+  failed_when: false
+
+- name: Wait for GNU Radio broker to be ready
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/sh -lc
+    "grep -q 'Press Enter to quit' /var/log/gnu_multi_ue.log 2>/dev/null"
+  register: gnu_log_wait
+  changed_when: false
+  failed_when: false
+  retries: 30
+  delay: 2
+  until: gnu_log_wait.rc == 0
+
+- name: Warn if GNU Radio did not start
   ansible.builtin.debug:
-    msg: "Deploying {{ ue_list | length }} UE(s): {{ ue_list | map(attribute='name') | list }}"
+    msg: "WARNING: GNU Radio broker did not start"
+  when: gnu_log_wait.rc != 0
 
-- block:
+# --- UEs ensuite ---
 
-    # --- Cleanup ---
+- name: Start each UE in its own tmux window
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} --
+    /bin/sh -lc "
+      tmux list-windows -t ran | grep -q 'ue{{ item.index }}' \
+        && tmux kill-window -t ran:ue{{ item.index }} || true;
+      tmux new-window -t ran -n ue{{ item.index }} \
+        'bash -lc \"/srsran/config/start_ue.sh {{ item.index }} 2>&1 | tee /var/log/ue{{ item.index }}.log\"'
+    "
+  loop: "{{ ue_list }}"
+  changed_when: true
+  failed_when: false
 
-    - name: Uninstall existing srsran-ue Helm release
-      kubernetes.core.helm:
-        name: srsran-ue
-        release_namespace: "{{ ran_ns }}"
-        state: absent
-        wait: true
-      failed_when: false
+- name: Wait until each UE process is up
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/sh -lc
+    'ok=1;
+     for i in {{ ue_indices | join(" ") }}; do
+       if ! pgrep -af "srsue .*ue_${i}\.conf" >/dev/null 2>&1; then
+         ok=0; break;
+       fi;
+     done;
+     test "$ok" = "1"'
+  register: ue_up_check
+  changed_when: false
+  failed_when: false
+  retries: 60
+  delay: 2
+  until: ue_up_check.rc == 0
 
-    - name: Clean old srsue ConfigMap
-      kubernetes.core.k8s:
-        api_version: v1
-        kind: ConfigMap
-        namespace: "{{ ran_ns }}"
-        name: "srsran-ue-srsran-ue-ue-config"
-        state: absent
-      failed_when: false
+- name: Warn if UE processes did not start
+  ansible.builtin.debug:
+    msg: "WARNING: not all UE processes started"
+  when: ue_up_check.rc != 0
 
-    # --- Deploy single UE pod via Helm ---
+# --- Routes ---
 
-    - name: Deploy srsRAN UE pod via Helm
-      kubernetes.core.helm:
-        name: srsran-ue
-        chart_ref: "{{ [repo_dest_abs, 'charts', 'srsue'] | path_join }}"
-        release_namespace: "{{ ran_ns }}"
-        values_files:
-          - "{{ [repo_dest_abs, 'charts', 'srsue', 'values-rfsim.yaml'] | path_join }}"
-        state: present
-        wait: true
-        atomic: true
-        timeout: 300s
+- name: Add routes in UE pod
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/bash -lc
+    'UE_COUNT={{ ue_count }} /srsran/config/add_route.sh'
+  changed_when: false
+  failed_when: false
 
-    # --- Pod discovery ---
+# --- Show UE IPs ---
 
-    - name: Get UE pod name
-      kubernetes.core.k8s_info:
-        kind: Pod
-        namespace: "{{ ran_ns }}"
-        label_selectors: "{{ srs_ue_label_selectors }}"
-      register: ue_pods
-      until: >
-        ue_pods.resources | length > 0 and
-        (ue_pods.resources[0].status.phase | default('')) == 'Running'
-      retries: 30
-      delay: 5
+- name: Extract UE IP addresses from logs
+  ansible.builtin.command: >
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/sh -lc
+    "grep -m1 'PDU Session Establishment successful' /var/log/ue{{ item.index }}.log 2>/dev/null | awk '{print \$NF}'"
+  loop: "{{ ue_list }}"
+  register: ue_ips
+  changed_when: false
+  failed_when: false
 
-    - name: Set UE pod name
-      set_fact:
-        ue_pod_name: "{{ ue_pods.resources[0].metadata.name }}"
-
-    - name: Wait for UE pod to be Ready
-      ansible.builtin.command: >
-        {{ kubectl_bin }} wait --for=condition=Ready pod/{{ ue_pod_name }}
-        -n {{ ran_ns }} --timeout=300s
-      changed_when: false
-
-    - name: Debug UE pod name
-      ansible.builtin.debug:
-        msg: "UE pod: {{ ue_pod_name }}"
-
-    # --- tmux session ---
-
-    - name: Create tmux session 'ran' if missing
-      ansible.builtin.command: >
-        {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} --
-        /bin/sh -lc "tmux has-session -t ran 2>/dev/null || tmux new-session -d -s ran"
-      changed_when: true
-      failed_when: false
-
-    # --- Start each UE in its own tmux window ---
-
-    - name: Start each UE in its own tmux window
-      ansible.builtin.command: >
-        {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} --
-        /bin/sh -lc "
-          tmux list-windows -t ran | grep -q 'ue{{ item.index }}' \
-            && tmux kill-window -t ran:ue{{ item.index }} || true;
-          tmux new-window -t ran -n ue{{ item.index }} \
-            'bash -lc \"/srsran/config/start_ue.sh {{ item.index }} 2>&1 | tee /var/log/ue{{ item.index }}.log\"'
-        "
-      loop: "{{ ue_list }}"
-      changed_when: true
-      failed_when: false
-
-    # --- Wait for srsUE processes ---
-
-    - name: Wait until each UE process is up
-      ansible.builtin.command: >
-        {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/sh -lc
-        'ok=1;
-         for i in {{ ue_indices | join(" ") }}; do
-           if ! pgrep -af "srsue .*ue_${i}\.conf" >/dev/null 2>&1; then
-             ok=0; break;
-           fi;
-         done;
-         test "$ok" = "1"'
-      register: ue_up_check
-      changed_when: false
-      failed_when: false
-      retries: 60
-      delay: 2
-      until: ue_up_check.rc == 0
-
-    - name: Warn if UE processes did not start
-      ansible.builtin.debug:
-        msg: "WARNING: not all UE processes started - check tmux windows"
-      when: ue_up_check.rc != 0
-
-    - name: Pause before adding routes
-      ansible.builtin.pause:
-        seconds: 3
-
-    # --- Routes ---
-
-    - name: Add routes in UE pod
-      ansible.builtin.command: >
-        {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/bash -lc
-        'UE_COUNT={{ ue_count }} /srsran/config/add_route.sh'
-      changed_when: false
-      failed_when: false
-
-    # --- Show UE IPs ---
-
-    - name: Extract UE IP addresses from logs
-      ansible.builtin.command: >
-        {{ kubectl_bin }} -n {{ ran_ns }} exec {{ ue_pod_name }} -- /bin/sh -lc
-        "grep -m1 'PDU Session Establishment successful' /var/log/ue{{ item.index }}.log 2>/dev/null | awk '{print \$NF}'"
-      loop: "{{ ue_list }}"
-      register: ue_ips
-      changed_when: false
-      failed_when: false
-
-    - name: Show UE IP addresses
-      ansible.builtin.debug:
-        msg: "{{ item.item.name }} ({{ item.item.imsi }}) → {{ item.stdout | default('N/A') }}"
-      loop: "{{ ue_ips.results }}"
-      loop_control:
-        label: "{{ item.item.name }}"
-
-    # --- Summary ---
+- name: Show UE IP addresses
+  ansible.builtin.debug:
+    msg: "{{ item.item.name }} ({{ item.item.imsi }}) → {{ item.stdout | default('N/A') }}"
+  loop: "{{ ue_ips.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
 
     - name: Summary
       ansible.builtin.debug:
