@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ '{{' }} include "srsran-ue.fullname" . {{ '}}' }}-{{ '{{' }} .Release.Name {{ '}}' }}-ue-config
+  labels:
+    {{ '{{-' }} include "srsran-ue.labels" . | nindent 4 {{ '}}' }}
+data:
+  start_ue.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "--- Starting UE $1 ---"
+    python3 /srsran/config/generate_ue_conf.py "$1" /tmp/
+    echo "Starting srsUE $1..."
+    /opt/srsRAN_4G/build/srsue/src/srsue /tmp/ue_$1.conf > /proc/1/fd/1 2>&1 &
+    UE_PID=$!
+    echo "Waiting for tun_srsue..."
+    for i in $(seq 1 50); do
+      if ip addr show tun_srsue >/dev/null 2>&1; then
+        UE_IP=$(ip addr show tun_srsue | grep 'inet ' | awk '{print $2}')
+        if [ -n "$UE_IP" ]; then
+          echo "tun_srsue UP: $UE_IP"
+          ip link set dev tun_srsue mtu 1400 || true
+          ip route add 12.1.0.0/16 dev tun_srsue 2>/dev/null || true
+          ip route add 14.1.0.0/16 dev tun_srsue 2>/dev/null || true
+          ip route
+          break
+        fi
+      fi
+      sleep 2
+    done
+    wait $UE_PID
+
+  start_gnu.sh: |
+{{ '{{' }} .Files.Get "files/start_gnu.sh" | indent 4 {{ '}}' }}
+
+  multi_ue_scenario.py: |
+{{ '{{' }} .Files.Get "files/multi_ue_scenario.py" | indent 4 {{ '}}' }}
+
+  add_route.sh: |
+{{ '{{' }} .Files.Get "files/add_route.sh" | indent 4 {{ '}}' }}
+
+  generate_ue_conf.py: |
+    #!/usr/bin/env python3
+    import argparse, os
+
+    UE_CONFIGS = {
+    {{ '{{-' }} range $i, $ue := .Values.ues {{ '}}' }}
+      {{ '{{' }} add $i 1 {{ '}}' }}: {
+        "imsi":      "{{ '{{' }} $ue.imsi {{ '}}' }}",
+        "k":         "{{ '{{' }} $ue.k {{ '}}' }}",
+        "opc":       "{{ '{{' }} $ue.opc {{ '}}' }}",
+        "apn":       "{{ '{{' }} $ue.apn {{ '}}' }}",
+        "ue_ip":     "{{ '{{' }} $ue.ueIp {{ '}}' }}",
+        "gnb_ip":    "{{ '{{' }} $.Values.gnbIp {{ '}}' }}",
+        "tx_port":   {{ '{{' }} $ue.zmqTxPort {{ '}}' }},
+        "rx_port":   {{ '{{' }} $ue.zmqRxPort {{ '}}' }},
+      },
+    {{ '{{-' }} end {{ '}}' }}
+    }
+
+    UE_TEMPLATE = """[rf]
+    freq_offset = 0
+    tx_gain = 80
+    rx_gain = 40
+    srate = 23.04e6
+    nof_antennas = 1
+    device_name = zmq
+    device_args = tx_port={tx_port},rx_port={rx_port},base_srate=23.04e6
+
+    [rat.eutra]
+    dl_earfcn = 2850
+    nof_carriers = 0
+
+    [rat.nr]
+    bands = 3
+    nof_carriers = 1
+    max_nof_prb = 106
+    nof_prb = 106
+
+    [log]
+    all_level = warning
+    phy_lib_level = none
+    all_hex_limit = 32
+    filename = {log_file}
+    file_max_size = 1000
+
+    [usim]
+    mode = soft
+    algo = milenage
+    opc  = {opc}
+    k    = {k}
+    imsi = {imsi}
+    imei = 356938035643803
+
+    [rrc]
+    release = 15
+    ue_category = 4
+
+    [nas]
+    apn = {apn}
+    apn_protocol = ipv4
+
+    [gw]
+    ip_devname = tun_srsue
+    ip_netmask = 255.255.255.0
+
+    [gui]
+    enable = false
+    """
+
+    def generate_ue_config(ue_number, output_directory):
+        os.makedirs(output_directory, exist_ok=True)
+        cfg = UE_CONFIGS.get(ue_number, UE_CONFIGS[1])
+        content = UE_TEMPLATE.format(
+            tx_port=f"tcp://{cfg['ue_ip']}:{cfg['tx_port']}",
+            rx_port=f"tcp://{cfg['gnb_ip']}:{cfg['rx_port']}",
+            log_file=os.path.join(output_directory, f"ue{ue_number}.log"),
+            opc=cfg["opc"], k=cfg["k"],
+            imsi=cfg["imsi"], apn=cfg["apn"],
+        )
+        path = os.path.join(output_directory, f"ue_{ue_number}.conf")
+        with open(path, "w") as f:
+            f.write(content)
+        print(f"Wrote {path}")
+        return path
+
+    if __name__ == "__main__":
+        parser = argparse.ArgumentParser()
+        parser.add_argument("ue_number", type=int)
+        parser.add_argument("output_directory", type=str)
+        args = parser.parse_args()
+        generate_ue_config(args.ue_number, args.output_directory)

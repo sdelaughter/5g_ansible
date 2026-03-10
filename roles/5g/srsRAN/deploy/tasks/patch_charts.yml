@@ -1,0 +1,150 @@
+---
+# ============================================================
+# Patch srsRAN Helm charts for rfsim multi-UE GNU Radio mode
+# Idempotent - safe to run multiple times
+# ============================================================
+
+- name: Load common variables
+  include_vars:
+    file: "../../common/defaults/main.yml"
+
+# --- GNU Radio files ---
+
+- name: Create charts/srsue/files directory
+  ansible.builtin.file:
+    path: "{{ repo_dest_abs }}/charts/srsue/files"
+    state: directory
+    mode: '0755'
+
+- name: Write multi_ue_scenario.py
+  ansible.builtin.copy:
+    dest: "{{ repo_dest_abs }}/charts/srsue/files/multi_ue_scenario.py"
+    mode: '0755'
+    content: |
+      #!/usr/bin/env python3
+      """GNU Radio ZMQ broker for srsRAN multi-UE rfsim - GR 3.10"""
+      from gnuradio import gr, zeromq, blocks
+      import argparse, signal, sys, os
+
+      GNB_IP = os.environ.get("GNB_IP", "{{ srsran_network.n3.gnb_ip }}")
+      UE_IPS = os.environ.get("UE_IPS", "{{ srsran_network.n3.ue_ips | join(',') }}").split(",")
+
+      class MultiUEBroker(gr.top_block):
+          def __init__(self, nof_ues):
+              gr.top_block.__init__(self, "MultiUE ZMQ Broker")
+
+              # DL: gNB TX (:2000) -> copy to each UE RX (:2100,:2200,:2300)
+              gnb_src = zeromq.req_source(
+                  gr.sizeof_gr_complex, 1,
+                  f"tcp://{GNB_IP}:2000", 100, False, -1)
+
+              for i in range(nof_ues):
+                  port = 2100 + i * 100
+                  ue_sink = zeromq.rep_sink(
+                      gr.sizeof_gr_complex, 1,
+                      f"tcp://{UE_IPS[i]}:{port}", 100, False, -1)
+                  self.connect(gnb_src, ue_sink)
+
+              # UL: each UE TX (:2101,:2201,:2301) -> add -> gNB RX (:2001)
+              adder = blocks.add_cc(1)
+              for i in range(nof_ues):
+                  port = 2101 + i * 100
+                  ue_src = zeromq.rep_source(
+                      gr.sizeof_gr_complex, 1,
+                      f"tcp://{UE_IPS[i]}:{port}", 100, False, -1)
+                  self.connect(ue_src, (adder, i))
+
+              gnb_sink = zeromq.req_sink(
+                  gr.sizeof_gr_complex, 1,
+                  f"tcp://{GNB_IP}:2001", 100, False, -1)
+              self.connect(adder, gnb_sink)
+
+      if __name__ == "__main__":
+          parser = argparse.ArgumentParser()
+          parser.add_argument("--nof-ues", type=int, default=1)
+          args = parser.parse_args()
+          tb = MultiUEBroker(args.nof_ues)
+          tb.start()
+          print("Press Enter to quit", flush=True)
+          def _stop(*_):
+              tb.stop()
+              tb.wait()
+              sys.exit(0)
+          signal.signal(signal.SIGTERM, _stop)
+          signal.signal(signal.SIGINT, _stop)
+          try:
+              tb.wait()
+          except KeyboardInterrupt:
+              _stop()
+
+- name: Write start_gnu.sh
+  ansible.builtin.copy:
+    dest: "{{ repo_dest_abs }}/charts/srsue/files/start_gnu.sh"
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      UE_COUNT=${1:-${UE_COUNT:-1}}
+      LOG=/var/log/gnu_multi_ue.log
+      mkdir -p /var/log
+      echo "[$(date -u +%FT%TZ)] Starting GNU Radio broker for ${UE_COUNT} UE(s)..." | tee "$LOG"
+      exec python3 /srsran/config/multi_ue_scenario.py --nof-ues "${UE_COUNT}" >> "$LOG" 2>&1
+
+- name: Write add_route.sh
+  ansible.builtin.copy:
+    dest: "{{ repo_dest_abs }}/charts/srsue/files/add_route.sh"
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      UE_COUNT=${UE_COUNT:-1}
+      for i in $(seq 1 "$UE_COUNT"); do
+        [ "$i" -eq 1 ] && iface="tun_srsue" || iface="tun_srsue${i}"
+        if ip link show "$iface" >/dev/null 2>&1; then
+          ip route add 12.1.0.0/16 dev "$iface" 2>/dev/null || true
+          ip route add 14.1.0.0/16 dev "$iface" 2>/dev/null || true
+          echo "Routes added for $iface"
+        else
+          echo "Interface $iface not found, skipping"
+        fi
+      done
+
+# --- Rewrite configmap.yaml ---
+
+- name: Rewrite srsue configmap.yaml
+  ansible.builtin.copy:
+    dest: "{{ repo_dest_abs }}/charts/srsue/templates/configmap.yaml"
+    mode: '0644'
+    content: "{{ lookup('template', 'srsue_configmap.yaml.j2') }}"
+
+# --- Patch deployment.yaml ---
+
+- name: Patch srsUE deployment - sleep infinity
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '/bin/bash /srsran/config/start_ue\.sh 1'
+    replace: 'sleep infinity'
+
+- name: Patch srsUE deployment - add env vars
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '(\s+- name: PATH\s+value: "[^"]+")'
+    replace: |
+      \1
+              - name: GNB_IP
+                value: "{{ srsran_network.n3.gnb_ip }}"
+              - name: UE_IPS
+                value: "{{ srsran_network.n3.ue_ips | join(',') }}"
+              - name: UE_COUNT
+                value: "{{ ue_count | default(3) | string }}"
+
+- name: Patch srsUE deployment - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
+
+- name: Patch gNB deployment - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'

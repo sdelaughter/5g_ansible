@@ -92,6 +92,60 @@
     ' "{{ values_file }}"
   when: rru == 'rfsim'
 
+- name: Build full UE list from 5G profile
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/../group_vars/all/5g_profile_{{ fiveg_profile | default('default') }}.yaml"
+    name: fiveg
+  when: rru == 'rfsim'
+
+- name: Set UE list
+  set_fact:
+    ue_list_full:
+      - name: ue1
+        index: 1
+        imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE18.imsi_suffix }}"
+        dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE18.slice) | map(attribute='dnn') | first }}"
+        tx_port: 2100
+        rx_port: 2000
+        ue_ip: "{{ srsran_network.n3.ue_ips[0] }}"
+      - name: ue2
+        index: 2
+        imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE19.imsi_suffix }}"
+        dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE19.slice) | map(attribute='dnn') | first }}"
+        tx_port: 2200
+        rx_port: 2001
+        ue_ip: "{{ srsran_network.n3.ue_ips[1] }}"
+      - name: ue3
+        index: 3
+        imsi: "{{ fiveg.plmn.mcc }}{{ fiveg.plmn.mnc }}{{ fiveg.ues.UE20.imsi_suffix }}"
+        dnn: "{{ fiveg.slices | selectattr('name','equalto',fiveg.ues.UE20.slice) | map(attribute='dnn') | first }}"
+        tx_port: 2300
+        rx_port: 2002
+        ue_ip: "{{ srsran_network.n3.ue_ips[2] }}"
+    ue_list: "{{ ue_list_full[:ue_count | int] }}"
+    ue_indices: "{{ range(1, ue_count | int + 1) | list }}"
+  when: rru == 'rfsim'
+
+- name: Write srsue values file for multi-UE GNU Radio mode
+  ansible.builtin.copy:
+    dest: "{{ [repo_dest_abs, 'charts', 'srsue', 'values-rfsim.yaml'] | path_join }}"
+    content: |
+      gnbIp: "{{ srsran_network.n3.gnb_ip }}"
+      ueIp: "{{ srsran_network.n3.ue_ips[0] }}"
+      n3networkName: "{{ n3networkName }}"
+      ueCount: {{ ue_count }}
+      ues:
+      {% for ue in ue_list %}
+        - imsi: "{{ ue.imsi }}"
+          k: "{{ fiveg.security.full_key }}"
+          opc: "{{ fiveg.security.opc }}"
+          apn: "{{ ue.dnn }}"
+          ueIp: "{{ ue.ue_ip }}"
+          zmqTxPort: {{ ue.tx_port }}
+          zmqRxPort: {{ ue.rx_port }}
+      {% endfor %}
+  when: rru == 'rfsim'
+
 - name: Patch gnb deployment template - parameterize n3network name
   ansible.builtin.replace:
     path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
