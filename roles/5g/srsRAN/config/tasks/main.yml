@@ -15,7 +15,7 @@
     version: "{{ version | default('main') }}"
     update: no
     force: yes
-  
+
 - name: Ensure namespace exists
   kubernetes.core.k8s:
     api_version: v1
@@ -23,19 +23,16 @@
     name: "{{ ran_ns }}"
     state: present
 
-# Ensure we have remote env facts
 - name: Gather env facts (remote)
   ansible.builtin.setup:
     filter: ansible_env
   when: ansible_env is not defined
 
-# Normalize repo_dest to an absolute remote path (expand ~, trim)
 - name: Normalize repo_dest to remote HOME
   ansible.builtin.set_fact:
     repo_dest_abs: "{{ (repo_dest | default('~/srsran-helm') | trim)
                        | regex_replace('^~/?', ansible_env.HOME ~ '/') }}"
 
-# Choose filename from rru (lower/trim), fall back to values.yaml
 - name: Select values filename from rru
   ansible.builtin.set_fact:
     values_filename: "{{ rru_file_map[(rru | default('rfsim') | string | trim | lower)] | default('values.yaml') }}"
@@ -43,18 +40,14 @@
     rru_file_map:
       benetel: values-benetel.yaml
       liteon:  values-liteon.yaml
-      #n300:    values-n300.yaml
       n300:    values-n300-n78-20MHz.yaml
-      #n320:    values-n320.yaml
       n320:    values-n320-n78-20MHz.yaml
       rfsim:   values-rfsim.yaml
 
-# Build full path with path_join (prevents spaces/slash issues)
 - name: Build absolute values_file path
   ansible.builtin.set_fact:
     values_file: "{{ [repo_dest_abs, 'charts', 'srsran-gnb', values_filename] | path_join }}"
 
-# Sanity check
 - name: debug
   ansible.builtin.debug:
     msg:
@@ -74,7 +67,7 @@
 - name: Apply 5G profile to gNB and UE configs
   include_tasks: apply_5g_profile.yaml
 
-- name: Update AMF address, gNB N3 IP and n3networkName 
+- name: Update AMF address, gNB N3 IP and n3networkName
   ansible.builtin.shell: >
     {{ yq_bin_path }} eval -i '
       .gnbConfig.cu_cp.amf.addr = "{{ srsran_network.n2.amf_ip }}" |
@@ -85,20 +78,34 @@
       .n3networkName = "{{ n3networkName }}"
     ' "{{ values_file }}"
 
-- name: Fix device_args for rfsim multi-UE mode
+- name: Fix device_args for rfsim GNU Radio single-channel multi-UE
   ansible.builtin.shell: >
     {{ yq_bin_path }} eval -i '
       .gnbConfig.ru_sdr.device_args = "tx_port=tcp://{{ srsran_network.n3.gnb_ip }}:2000,rx_port=tcp://{{ srsran_network.n3.gnb_ip }}:2001,base_srate=23.04e6"
     ' "{{ values_file }}"
   when: rru == 'rfsim'
 
-- name: Build full UE list from 5G profile
+- name: Patch gnb deployment template - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
+
+- name: Patch srsue deployment template - parameterize n3network name
+  ansible.builtin.replace:
+    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
+    regexp: '"name":\s*"n3network"'
+    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
+
+# --- rfsim only: UE list + srsue values file ---
+
+- name: Load 5G profile vars
   ansible.builtin.include_vars:
     file: "{{ playbook_dir }}/../group_vars/all/5g_profile_{{ fiveg_profile | default('default') }}.yaml"
     name: fiveg
   when: rru == 'rfsim'
 
-- name: Set UE list
+- name: Build full UE list
   set_fact:
     ue_list_full:
       - name: ue1
@@ -122,11 +129,15 @@
         tx_port: 2300
         rx_port: 2002
         ue_ip: "{{ srsran_network.n3.ue_ips[2] }}"
+  when: rru == 'rfsim'
+
+- name: Slice UE list to ue_count
+  set_fact:
     ue_list: "{{ ue_list_full[:ue_count | int] }}"
     ue_indices: "{{ range(1, ue_count | int + 1) | list }}"
   when: rru == 'rfsim'
 
-- name: Write srsue values file for multi-UE GNU Radio mode
+- name: Write srsue values-rfsim.yaml
   ansible.builtin.copy:
     dest: "{{ [repo_dest_abs, 'charts', 'srsue', 'values-rfsim.yaml'] | path_join }}"
     content: |
@@ -145,15 +156,3 @@
           zmqRxPort: {{ ue.rx_port }}
       {% endfor %}
   when: rru == 'rfsim'
-
-- name: Patch gnb deployment template - parameterize n3network name
-  ansible.builtin.replace:
-    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
-    regexp: '"name":\s*"n3network"'
-    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
-
-- name: Patch srsue deployment template - parameterize n3network name
-  ansible.builtin.replace:
-    path: "{{ repo_dest_abs }}/charts/srsue/templates/deployment.yaml"
-    regexp: '"name":\s*"n3network"'
-    replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
