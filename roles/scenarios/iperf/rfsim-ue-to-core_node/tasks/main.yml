@@ -9,7 +9,7 @@
     free5gc_srsran: "{{ core == 'free5gc' and ran == 'srsRAN' }}"
     ue_name: >-
       {{ 'srsran-ue-srsran-ue' if (core == 'free5gc' and ran == 'srsRAN')
-         else 'srsran-ue-srsue-ue' if (core == 'open5gs' and ran == 'srsRAN')
+         else 'srsran-ue-srsue-ue' if ran == 'srsRAN'
          else 'oai-nr-ue' if ran == 'oai'
          else 'ueransim-ue' }}
     tun_name: >-
@@ -103,9 +103,10 @@
                                  'tun': tun_name}] }}"
   loop: "{{ ue_ip_results.results | default([]) }}"
   loop_control:
-    label: "{{ item.item.metadata.name }} -> {{ item.stdout | trim }}"
+    label: "{{ item.item.metadata.name if item.item is defined else 'skipped' }}"
   when:
     - not (free5gc_srsran | bool)
+    - item.skipped is not defined or not item.skipped
     - item.stdout is defined
     - item.stdout | trim is search('^[0-9.]+$')
 
