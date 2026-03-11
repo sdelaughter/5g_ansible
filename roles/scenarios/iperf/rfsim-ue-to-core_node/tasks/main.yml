@@ -6,17 +6,20 @@
     target_server: "{{ hostvars[groups['core_node'][0]].ip }}"
     core_ns: "{{ core }}"
     valid_ues: []
-    ue_name: "{{ ue_name_map[ran] }}"
-    tun_name: "{{ tun_name_map[ran] }}"
-  vars:
-    ue_name_map:
-      oai: oai-nr-ue
-      srsRAN: srsran-ue-srsue-ue
-      ueransim: ueransim-ue
-    tun_name_map:
-      oai: oaitun_ue1
-      srsRAN: tun_srsue
-      ueransim: uesimtun0
+    free5gc_srsran: "{{ core == 'free5gc' and ran == 'srsRAN' }}"
+    ue_name: >-
+      {{ 'srsran-ue-srsran-ue' if (core == 'free5gc' and ran == 'srsRAN')
+         else 'srsran-ue-srsue-ue' if (core == 'open5gs' and ran == 'srsRAN')
+         else 'oai-nr-ue' if ran == 'oai'
+         else 'ueransim-ue' }}
+    tun_name: >-
+      {{ 'tun_srsue' if ran == 'srsRAN'
+         else 'oaitun_ue1' if ran == 'oai'
+         else 'uesimtun0' }}
+
+# ============================================================
+# Get UE pods
+# ============================================================
 
 - name: Get all pods in namespace
   kubernetes.core.k8s_info:
@@ -27,6 +30,10 @@
 - name: Filter UE pods by name
   set_fact:
     ue_resources: "{{ all_pods.resources | selectattr('metadata.name', 'search', '^' + ue_name) | list }}"
+
+# ============================================================
+# Install iperf3 (on all UE pods)
+# ============================================================
 
 - name: Force Install iperf3 (YUM then APT)
   shell: |
@@ -47,18 +54,38 @@
   register: install_check
   failed_when: install_check.rc != 0
 
-# following solve issues with iperf
-- name: Configure UE MTU to 1350
-  shell: |
-    kubectl exec -n {{ core_ns }} {{ item.metadata.name }} -- \
-    ip link set dev {{ tun_name }} mtu 1350
-  loop: "{{ ue_resources }}"
-  loop_control:
-    label: "Setting MTU 1350 on {{ item.metadata.name }}"
-  register: mtu_result
-  failed_when: false
+# ============================================================
+# Build valid_ues - free5gc+srsRAN: single pod, numbered tuns
+# ============================================================
 
-- name: Get tun IP
+- name: Get tun IPs from single UE pod (free5gc+srsRAN)
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ ue_resources[0].metadata.name }} -- bash -c "
+    for i in \$(seq 1 {{ nb_ues }}); do
+      ip -4 addr show tun_srsue\${i} 2>/dev/null \
+        | awk -v tun=\"tun_srsue\${i}\" '/inet / {print tun, \$2}'
+    done"
+  register: free5gc_tun_raw
+  changed_when: false
+  when: free5gc_srsran | bool
+
+- name: Build valid_ues (free5gc+srsRAN)
+  set_fact:
+    valid_ues: "{{ valid_ues + [{'pod': ue_resources[0].metadata.name,
+                                 'ip': item.split()[1] | regex_replace('/.*', ''),
+                                 'tun': item.split()[0]}] }}"
+  loop: "{{ free5gc_tun_raw.stdout_lines | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  when:
+    - free5gc_srsran | bool
+    - item | trim != ''
+
+# ============================================================
+# Build valid_ues - open5gs+srsRAN (and others): one pod per UE
+# ============================================================
+
+- name: Get tun IP per pod (open5gs+srsRAN and others)
   shell: |
     kubectl exec -n {{ core_ns }} {{ item.metadata.name }} -- \
     /bin/bash -c "ip -4 addr show {{ tun_name }} | awk '/inet / {print \$2}' | cut -d/ -f1"
@@ -67,26 +94,46 @@
     label: "Getting IP for {{ item.metadata.name }}"
   register: ue_ip_results
   changed_when: false
+  when: not (free5gc_srsran | bool)
 
-- name: Init and Classify valid UEs
+- name: Build valid_ues (open5gs+srsRAN and others)
   set_fact:
-    valid_ues: "{{ valid_ues + [ {'pod': item.item.metadata.name, 'ip': item.stdout | trim} ] }}"
-  loop: "{{ ue_ip_results.results }}"
+    valid_ues: "{{ valid_ues + [{'pod': item.item.metadata.name,
+                                 'ip': item.stdout | trim,
+                                 'tun': tun_name}] }}"
+  loop: "{{ ue_ip_results.results | default([]) }}"
   loop_control:
     label: "{{ item.item.metadata.name }} -> {{ item.stdout | trim }}"
   when:
+    - not (free5gc_srsran | bool)
     - item.stdout is defined
     - item.stdout | trim is search('^[0-9.]+$')
+
+# ============================================================
+# Configure MTU and routes
+# ============================================================
+
+- name: Configure UE MTU to 1350
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
+    ip link set dev {{ item.tun }} mtu 1350
+  loop: "{{ valid_ues }}"
+  loop_control:
+    label: "Setting MTU 1350 on {{ item.pod }} ({{ item.tun }})"
+  failed_when: false
 
 - name: Add ip route to target_server
   shell: |
     kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
-    ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ tun_name }}
+    ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ item.tun }}
   loop: "{{ valid_ues }}"
   loop_control:
-    label: "Setting route to iperf server on {{ item.pod }}"
-  register: route_result
+    label: "Setting route on {{ item.pod }} via {{ item.tun }}"
   failed_when: false
+
+# ============================================================
+# iperf uplink
+# ============================================================
 
 - name: Show iperf uplink command
   debug:
@@ -96,7 +143,7 @@
   loop: "{{ valid_ues }}"
   loop_control:
     index_var: idx
-    label: "Uplink CMD: {{ item.pod }}"
+    label: "Uplink CMD: {{ item.pod }} ({{ item.tun }})"
 
 - name: Run iperf uplink
   shell: >
@@ -105,7 +152,7 @@
   loop: "{{ valid_ues }}"
   loop_control:
     index_var: idx
-    label: "Uplink: {{ item.pod }} (Port: {{ 5201 + idx | int }})"
+    label: "Uplink: {{ item.pod }} {{ item.tun }} (Port: {{ 5201 + idx | int }})"
   register: iperf_results
   failed_when: false
   ignore_errors: yes
@@ -118,6 +165,10 @@
   pause:
     seconds: "{{ sleep }}"
 
+# ============================================================
+# iperf downlink
+# ============================================================
+
 - name: Show iperf downlink command
   debug:
     msg: >
@@ -126,7 +177,7 @@
   loop: "{{ valid_ues }}"
   loop_control:
     index_var: idx
-    label: "Downlink CMD: {{ item.pod }}"
+    label: "Downlink CMD: {{ item.pod }} ({{ item.tun }})"
 
 - name: Run iperf downlink
   shell: >
@@ -135,5 +186,5 @@
   loop: "{{ valid_ues }}"
   loop_control:
     index_var: idx
-    label: "Downlink: {{ item.pod }} (Port: {{ 5201 + idx | int }})"
+    label: "Downlink: {{ item.pod }} {{ item.tun }} (Port: {{ 5201 + idx | int }})"
   ignore_errors: yes
