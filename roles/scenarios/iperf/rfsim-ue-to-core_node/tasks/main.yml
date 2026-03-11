@@ -125,8 +125,13 @@
 
 - name: Add ip route to target_server
   shell: |
+    {% if free5gc_srsran | bool %}
     kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
-    ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ item.tun }}
+    ip route add {{ target_server }} dev {{ item.tun }} 2>/dev/null || true
+    {% else %}
+    kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
+    ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ item.tun }} 2>/dev/null || true
+    {% endif %}
   loop: "{{ valid_ues }}"
   loop_control:
     label: "Setting route on {{ item.pod }} via {{ item.tun }}"
