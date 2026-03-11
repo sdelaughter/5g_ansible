@@ -8,12 +8,11 @@
     valid_ues: []
     free5gc_srsran: "{{ core == 'free5gc' and ran == 'srsRAN' }}"
     ue_name: >-
-      {{ 'srsran-ue-srsran-ue' if (core == 'free5gc' and ran == 'srsRAN')
-         else 'srsran-ue-srsue-ue' if ran == 'srsRAN'
+      {{ 'srsran-ue-srsran-ue' if ran == 'srsRAN'
          else 'oai-nr-ue' if ran == 'oai'
          else 'ueransim-ue' }}
     tun_name: >-
-      {{ 'tun_srsue' if ran == 'srsRAN'
+      {{ 'tun_srsue1' if ran == 'srsRAN'
          else 'oaitun_ue1' if ran == 'oai'
          else 'uesimtun0' }}
 
@@ -166,6 +165,18 @@
 # wait 1s to prevent Bad file descriptor error
 - pause:
     seconds: 1
+
+- name: Restart iperf3 servers between uplink and downlink (srsRAN only)
+  shell: |
+    pkill iperf3 || true
+    sleep 1
+    for i in $(seq 0 {{ valid_ues | length - 1 }}); do
+      /usr/bin/iperf3 -s -p {{ 5201 + i }} -D \
+        --logfile /root/IPERF/iperf_{{ 5201 + i }}_dl.log
+    done
+  delegate_to: "{{ groups['core_node'][0] }}"
+  become: true
+  when: ran == 'srsRAN'
 
 - name: Wait for sockets to clear
   pause:
