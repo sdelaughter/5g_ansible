@@ -14,8 +14,8 @@
   block:
     - name: Wait for gNB synchronization string
       shell: |
-        GNB_POD_NAME=$(kubectl get pods --namespace open5gs -l "app.kubernetes.io/name=oai-gnb,app.kubernetes.io/instance=oai-gnb" -o jsonpath="{.items[0].metadata.name}")
-        kubectl logs --namespace open5gs $GNB_POD_NAME | grep '\[NR_MAC\] I Frame.Slot'
+        GNB_POD_NAME=$(kubectl get pods --namespace {{ core }} -l "app.kubernetes.io/name=oai-gnb,app.kubernetes.io/instance=oai-gnb" -o jsonpath="{.items[0].metadata.name}")
+        kubectl logs --namespace {{ core }} $GNB_POD_NAME | grep '\[NR_MAC\] I Frame.Slot'
       register: gnb_log_check
       until: gnb_log_check.rc == 0
       retries: 6
@@ -40,8 +40,8 @@
 
         - name: Re-check gNB logs for sync
           shell: |
-            GNB_POD_NAME=$(kubectl get pods --namespace open5gs -l "app.kubernetes.io/name=oai-gnb,app.kubernetes.io/instance=oai-gnb" -o jsonpath="{.items[0].metadata.name}")
-            kubectl logs --namespace open5gs $GNB_POD_NAME | grep '\[NR_MAC\] I Frame.Slot'
+            GNB_POD_NAME=$(kubectl get pods --namespace {{ core }} -l "app.kubernetes.io/name=oai-gnb,app.kubernetes.io/instance=oai-gnb" -o jsonpath="{.items[0].metadata.name}")
+            kubectl logs --namespace {{ core }} $GNB_POD_NAME | grep '\[NR_MAC\] I Frame.Slot'
           register: gnb_log_check_retry
           until: gnb_log_check_retry.rc == 0
           retries: 6
