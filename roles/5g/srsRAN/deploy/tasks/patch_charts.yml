@@ -87,7 +87,7 @@
       #!/bin/bash
       UE_COUNT=${UE_COUNT:-1}
       for i in $(seq 1 "$UE_COUNT"); do
-        [ "$i" -eq 1 ] && iface="tun_srsue" || iface="tun_srsue${i}"
+        iface="tun_srsue${i}"
         if ip link show "$iface" >/dev/null 2>&1; then
           ip route add 12.1.0.0/16 dev "$iface" 2>/dev/null || true
           ip route add 14.1.0.0/16 dev "$iface" 2>/dev/null || true

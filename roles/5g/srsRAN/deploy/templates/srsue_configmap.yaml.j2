@@ -13,15 +13,15 @@ data:
     echo "Starting srsUE $1..."
     /opt/srsRAN_4G/build/srsue/src/srsue /tmp/ue_$1.conf > /proc/1/fd/1 2>&1 &
     UE_PID=$!
-    echo "Waiting for tun_srsue..."
+    echo "Waiting for tun_srsue$1..."
     for i in $(seq 1 50); do
-      if ip addr show tun_srsue >/dev/null 2>&1; then
-        UE_IP=$(ip addr show tun_srsue | grep 'inet ' | awk '{print $2}')
+      if ip addr show tun_srsue$1 >/dev/null 2>&1; then
+        UE_IP=$(ip addr show tun_srsue$1 | grep 'inet ' | awk '{print $2}')
         if [ -n "$UE_IP" ]; then
-          echo "tun_srsue UP: $UE_IP"
-          ip link set dev tun_srsue mtu 1400 || true
-          ip route add 12.1.0.0/16 dev tun_srsue 2>/dev/null || true
-          ip route add 14.1.0.0/16 dev tun_srsue 2>/dev/null || true
+          echo "tun_srsue$1 UP: $UE_IP"
+          ip link set dev tun_srsue$1 mtu 1400 || true
+          ip route add 12.1.0.0/16 dev tun_srsue$1 2>/dev/null || true
+          ip route add 14.1.0.0/16 dev tun_srsue$1 2>/dev/null || true
           ip route
           break
         fi
@@ -90,7 +90,7 @@ data:
         "apn = {apn}\n"
         "apn_protocol = ipv4\n"
         "[gw]\n"
-        "ip_devname = tun_srsue\n"
+        "ip_devname = tun_srsue{ue_number}\n"
         "ip_netmask = 255.255.255.0\n"
         "[gui]\n"
         "enable = false\n"
@@ -103,7 +103,7 @@ data:
             rx_port="tcp://{}:{}".format(cfg['ue_ip'], cfg['rx_port']),
             log_file=os.path.join(output_directory, "ue{}.log".format(ue_number)),
             opc=cfg["opc"], k=cfg["k"],
-            imsi=cfg["imsi"], apn=cfg["apn"],
+            imsi=cfg["imsi"], apn=cfg["apn"], ue_number=ue_number,
         )
         path = os.path.join(output_directory, "ue_{}.conf".format(ue_number))
         with open(path, "w") as f:
