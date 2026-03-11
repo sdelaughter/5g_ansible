@@ -27,7 +27,7 @@
       import argparse, signal, sys, os
       GNB_IP = os.environ.get("GNB_IP", "{{ srsran_network.n3.gnb_ip }}")
       UE_IP  = os.environ.get("UE_IPS", "{{ srsran_network.n3.ue_ips | join(',') }}").split(",")[0]
-      SAMP_RATE = 11.52e6
+      SAMP_RATE = 23.04e6
       class MultiUEBroker(gr.top_block):
           def __init__(self, nof_ues):
               gr.top_block.__init__(self, "MultiUE ZMQ Broker")
