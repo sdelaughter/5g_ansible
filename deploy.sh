@@ -899,48 +899,54 @@ reserve_nodes() {
 
 
 reserve_r2lab() {
-[[ "$NO_RESERVATION" == true ]] && return
+    [[ "$NO_RESERVATION" == true ]] && return
 
-## ========== Reserve R2Lab if needed ==========
-# If R2Lab platform is selected, reserve the testbed with the command:
-# rhubarbe book <start(HH:MM)> <end(HH:MM)> -e <email> -p <password> -s <slice name> -v
-# Reserve only if slices were reserved successfully and use the same duration.
-if [[ "$platform" == "r2lab" && "$slices_reserved" == true ]]; then
-  echo "Reserving R2Lab testbed..."
-  start_time=$(date +"%Y-%m-%dT%H:%M")
-  end_time=$(date -d "+$duration_minutes minutes" +"%Y-%m-%dT%H:%M")
-  rhubarbe_output=$(ssh "${R2LAB_USERNAME}"@faraday.inria.fr "rhubarbe book '${start_time}' '${end_time}' -e '${R2LAB_EMAIL}' -p '${R2LAB_PASSWORD}' -s '${R2LAB_USERNAME}' -v; echo EXIT_CODE:\$?" 2>&1)
+    ## ========== Reserve R2Lab if needed ==========
+    # If R2Lab platform is selected, reserve the testbed with the command:
+    # rhubarbe book <start(HH:MM)> <end(HH:MM)> -e <email> -p <password> -s <slice name> -v
+    # Reserve only if slices were reserved successfully and use the same duration.
+    if [[ "$platform" == "r2lab" && "$slices_reserved" == true ]]; then
+	echo "Reserving R2Lab testbed..."
+	# Round current time down to nearest 10 minutes
+	S=$(date +'%H%M')
+	START="${S:0:2}:${S:2:1}0"
+	# Start time in ISO format
+	start_time=$(date +"%Y-%m-%dT$START")
+	# Convert start_time to epoch timestamp (portable code)
+	start_epoch=$(date -j -f "%Y-%m-%dT%H:%M" "$start_time" "+%s" 2>/dev/null || date -d "$start_time" "+%s")
+	# Calculate end epoch by adding duration in minutes
+	end_epoch=$((start_epoch + duration_minutes * 60))
+	# Convert end epoch back to ISO format (portable)
+	end_time=$(date -r "$end_epoch" "+%Y-%m-%dT%H:%M" 2>/dev/null || date -d "@$end_epoch" "+%Y-%m-%dT%H:%M")
+	rhubarbe_output=$(ssh "${R2LAB_USERNAME}"@faraday.inria.fr "rhubarbe book '${start_time}' '${end_time}' -e '${R2LAB_EMAIL}' -p '${R2LAB_PASSWORD}' -s '${R2LAB_USERNAME}' -v; echo EXIT_CODE:\$?" 2>&1)
+	# Extract the exit code from the output
+	exit_code=$(echo "$rhubarbe_output" | grep "EXIT_CODE:" | cut -d: -f2)
+	rhubarbe_output=$(echo "$rhubarbe_output" | grep -v "EXIT_CODE:")
 
-  # Extract the exit code from the output
-  exit_code=$(echo "$rhubarbe_output" | grep "EXIT_CODE:" | cut -d: -f2)
-  rhubarbe_output=$(echo "$rhubarbe_output" | grep -v "EXIT_CODE:")
-
-  if [[ "$exit_code" -ne 0 ]]; then
-    echo "❌ R2Lab reservation failed."
-    echo "Error details: $rhubarbe_output"
-    read -rp "Do you want to ignore the R2Lab reservation failure and continue? [y/N]: " ignore_r2lab_choice
-    if [[ ! "$ignore_r2lab_choice" =~ ^[Yy]$ ]]; then
-      # If R2Lab reservation fails and the user does not want to ignore, exit the script and delete the slices reservation
-      # Using the command: pos calendar delete --id <reservation_id> <node/nodes separated by space>
-      echo "Deleting sopnodes reservation with ID: $reservation_id ..."
-      delete_output=$(pos calendar delete --id "$reservation_id" "${nodes_to_reserve[@]}" 2>&1)
-      if [[ $? -ne 0 ]]; then
-        echo "❌ Failed to delete sopnodes reservation."
-        echo "Error details: $delete_output"
-      else
-        echo "Sopnodes reservation deleted successfully."
-      fi
-      echo "Exiting script."
-      exit 1
-    else
-      echo "Ignoring R2Lab reservation failure and continuing..."
+	if [[ "$exit_code" -ne 0 ]]; then
+	    echo "❌ R2Lab reservation failed."
+	    echo "Error details: $rhubarbe_output"
+	    read -rp "Do you want to ignore the R2Lab reservation failure and continue? [y/N]: " ignore_r2lab_choice
+	    if [[ ! "$ignore_r2lab_choice" =~ ^[Yy]$ ]]; then
+		# If R2Lab reservation fails and the user does not want to ignore, exit the script and delete the slices reservation
+		# Using the command: pos calendar delete --id <reservation_id> <node/nodes separated by space>
+		echo "Deleting sopnodes reservation with ID: $reservation_id ..."
+		delete_output=$(pos calendar delete --id "$reservation_id" "${nodes_to_reserve[@]}" 2>&1)
+		if [[ $? -ne 0 ]]; then
+		    echo "❌ Failed to delete sopnodes reservation."
+		    echo "Error details: $delete_output"
+		else
+		    echo "Sopnodes reservation deleted successfully."
+		fi
+		echo "Exiting script."
+		exit 1
+	    else
+		echo "Ignoring R2Lab reservation failure and continuing..."
+	    fi
+	else
+	    echo "✅ R2Lab reservation successful from $start_time to $end_time."
+	fi
     fi
-  else
-    echo "✅ R2Lab reservation successful from $start_time to $end_time."
-  fi
-fi
-
-
 }
 
 ############################
