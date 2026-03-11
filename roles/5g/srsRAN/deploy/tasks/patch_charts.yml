@@ -173,7 +173,7 @@
 
 - name: Patch gNB deployment - parameterize n3network name
   ansible.builtin.replace:
-    path: "{{ repo_dest_abs }}/charts/srsran-gnb/templates/deployment.yaml"
+    path: "{{ repo_dest_abs }}/charts/srsran-gnb/values-rfsim.yaml"
     regexp: '"name":\s*"n3network"'
     replace: '"name": "{{ ''{{'' }} .Values.n3networkName {{ ''}}'' }}"'
 
