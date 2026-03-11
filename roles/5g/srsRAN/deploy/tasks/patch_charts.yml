@@ -60,7 +60,7 @@
           def _stop(*_):
               tb.stop(); tb.wait(); sys.exit(0)
           signal.signal(signal.SIGTERM, _stop)
-          signal.signal(signal.SIGINT, _ost)
+          signal.signal(signal.SIGINT, _stop)
           try:
               tb.wait()
           except KeyboardInterrupt:
