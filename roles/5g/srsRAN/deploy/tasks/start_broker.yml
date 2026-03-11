@@ -29,9 +29,16 @@
   delay: 2
   until: gnu_log_wait.rc == 0
 
+- name: Get gNB pod name
+  ansible.builtin.command: >
+    {{ kubectl_bin }} get pod -n {{ ran_ns }} -l app=srsran,component=gnb
+    -o jsonpath='{.items[0].metadata.name}'
+  register: gnb_pod_name_result
+  changed_when: false
+
 - name: Wait for gNB cell to be activated
   ansible.builtin.command: >
-    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ gnb_pod_name }} -c gnb-logs -- /bin/sh -lc
+    {{ kubectl_bin }} -n {{ ran_ns }} exec {{ gnb_pod_name_result.stdout }} -c gnb-logs -- /bin/sh -lc
     "grep -q 'Cell was activated' /var/log/gnb.log 2>/dev/null"
   register: gnb_cell_wait
   changed_when: false
@@ -39,6 +46,11 @@
   retries: 60
   delay: 5
   until: gnb_cell_wait.rc == 0
+
+- name: Warn if gNB cell did not activate
+  ansible.builtin.debug:
+    msg: "WARNING: gNB cell did not activate within timeout"
+  when: gnb_cell_wait.rc != 0
 
 - name: Warn if gNB cell did not activate
   ansible.builtin.debug:
