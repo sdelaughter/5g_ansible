@@ -37,7 +37,7 @@
 - name: Start iperf3 servers on incremental ports
   # Using the full path /usr/bin/iperf3 to be safe against "not found" errors
   shell: >
-    /usr/bin/iperf3 -s -p {{ base_port + item | int }} -D 
+    /usr/bin/iperf3 -s -B {{ core_ip }} -p {{ base_port + item | int }} -D 
     --logfile /root/IPERF/iperf_{{ base_port + item | int }}_{{ iperf_timestamp.stdout }}.log
   loop: "{{ range(0, actual_nb_ues | int) | list }}"
   become: true
