@@ -74,6 +74,9 @@
         'bash -lc \"/srsran/config/start_ue.sh {{ item.index }} 2>&1 | tee /var/log/ue{{ item.index }}.log\"'
     "
   loop: "{{ ue_list }}"
+  loop_control:
+    pause: 5  # add 5s delay between each UE, else Open5gs AMF will fail !
+    label: "{{ item.index }}"
   changed_when: true
   failed_when: false
 
