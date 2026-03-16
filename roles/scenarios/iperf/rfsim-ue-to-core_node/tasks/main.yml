@@ -99,9 +99,12 @@
   set_fact:
     valid_ues: "{{ valid_ues + [{'pod': item.item.metadata.name,
                                  'ip': item.stdout | trim,
-                                 'tun': tun_name}] }}"
+                                 'tun': 'tun_srsue' ~ (loop_idx + 1)
+                                        if (ran == 'srsRAN')
+                                        else tun_name}] }}"
   loop: "{{ ue_ip_results.results | default([]) }}"
   loop_control:
+    index_var: loop_idx
     label: "{{ item.item.metadata.name if item.item is defined else 'skipped' }}"
   when:
     - not (free5gc_srsran | bool)
@@ -198,11 +201,7 @@
   debug:
     msg: >
       kubectl exec -n {{ core_ns }} {{ item.pod }} --
-      iperf3 {{
-        '--bind-dev tun_srsue' ~ (1 + idx)
-        if core == 'open5gs'
-        else '-B ' ~ item.ip
-      }}
+      iperf3 --bind-dev {{ item.tun }}
       -c {{ target_server }}
       -p {{ 5201 + idx }}
       -t {{ duration | int }}
@@ -214,11 +213,7 @@
 - name: Run iperf uplink
   shell: >
     kubectl exec -n {{ core_ns }} {{ item.pod }} --
-    iperf3 {{
-      '--bind-dev tun_srsue' ~ (1 + idx)
-      if core == 'open5gs'
-      else '-B ' ~ item.ip
-    }}
+    iperf3 --bind-dev {{ item.tun }}
     -c {{ target_server }}
     -p {{ 5201 + idx }}
     -t {{ duration | int }}
@@ -259,19 +254,11 @@
 # iperf downlink
 # ============================================================
 
-# ============================================================
-# iperf downlink
-# ============================================================
-
 - name: Show iperf downlink command
   debug:
     msg: >
       kubectl exec -n {{ core_ns }} {{ item.pod }} --
-      iperf3 {{
-        '--bind-dev tun_srsue' ~ (1 + idx)
-        if core == 'open5gs'
-        else '-B ' ~ item.ip
-      }}
+      iperf3 --bind-dev {{ item.tun }}
       -c {{ target_server }}
       -p {{ 5201 + idx }}
       -t {{ duration | int }} -R
@@ -283,11 +270,7 @@
 - name: Run iperf downlink
   shell: >
     kubectl exec -n {{ core_ns }} {{ item.pod }} --
-    iperf3 {{
-      '--bind-dev tun_srsue' ~ (1 + idx)
-      if core == 'open5gs'
-      else '-B ' ~ item.ip
-    }}
+    iperf3 --bind-dev {{ item.tun }}
     -c {{ target_server }}
     -p {{ 5201 + idx }}
     -t {{ duration | int }} -R
@@ -296,4 +279,3 @@
     index_var: idx
     label: "Downlink: {{ item.pod }} {{ item.tun }} (Port: {{ 5201 + idx }})"
   ignore_errors: yes
-
