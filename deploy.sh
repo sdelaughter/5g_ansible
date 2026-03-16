@@ -863,7 +863,6 @@ reserve_nodes() {
   reservation_output=$(pos calendar create -d "${duration_minutes}" -s "now" "${nodes_to_reserve[@]}" 2>&1)
   reservation_exit_code=$?
 
-  echo "DEBUG:: just after pos calendar create, before if"
   if [[ $reservation_exit_code -ne 0 || "$reservation_output" == "-1" || -z "${reservation_output}" ]]; then
     # If it fails, try with 60 minutes
     echo "❌ Reservation for ${duration_minutes} minutes failed. Trying to reserve for 60 minutes..."
