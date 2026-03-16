@@ -2,13 +2,13 @@
 
 ![setup](images/setup.png)
 
-This repository provides a fully automated [Ansible](https://www.ansible.com/) framework for deploying and monitoring a sliced 5G network using Kubernetes. It is intended to be run from the [SLICES platform Webshell](https://post-5g-web.slices-ri.eu/), assuming you can obtain:
+This repository provides a fully automated [Ansible](https://www.ansible.com/) framework for deploying and monitoring a private sliced 5G network using Kubernetes. It is intended to be run from the [SLICES platform Webshell](https://post-5g-web.slices-ri.eu/), assuming you can obtain:
 
 - A valid [SLICES account](https://doc.slices-ri.eu/).
-- A valid reservation for the machines `sopnode-f1`, `sopnode-f2`, and `sopnode-f3` (from [Duckburg](https://duckburg.net.cit.tum.de/)).
+- A valid reservation for server(s) such as  `sopnode-f1`, `sopnode-f2`, `sopnode-f3` (from [Duckburg](https://duckburg.net.cit.tum.de/)).
 - A valid [R2Lab account and reservation](https://r2lab.inria.fr/tuto-010-registration.md).
 
-> First version of this script was developed in June 2025 by Ziyad Mabrouk as part of his internship at [Inria Sophia Antipolis](https://www.inria.fr/en/inria-centre-universite-cote-azur), under the supervision of: Thierry Turletti, Chadi Barakat, and Walid Dabbous.
+> NOTA: First version of this script was developed in June 2025 by Ziyad Mabrouk as part of his internship at [Inria Sophia Antipolis](https://www.inria.fr/en/inria-centre-universite-cote-azur), under the supervision of: Thierry Turletti, Chadi Barakat, and Walid Dabbous.
 
 ---
 
@@ -22,16 +22,22 @@ cd 5g_ansible
 ./deploy.sh
 ```
 
-This will:
+This script configures an ansible playbook that will :
 - Allocate and reset the reserved machines using `pos`.
-- Install all required packages.
+- Install all required packages on the server(s).
 - Set up a Kubernetes cluster across the nodes.
-- Deploy the **Open5GS Core** (with slice support via [sopnode/open5gs-k8s](https://github.com/sopnode/open5gs-k8s)).
-- Deploy the **Monarch monitoring framework** ([Ziyad-Mabrouk/5g-monarch](https://github.com/Ziyad-Mabrouk/5g-monarch), forked from [niloysh/5g-monarch](https://github.com/niloysh/5g-monarch)).
-- Clean up and configure R2Lab resources: RRU, UEs, Fit Nodes.
+- Deploy a 5G Core Network (CN). Currently 3 options are possible : Free5GC, OAI or Open5GS. 
+- Optionally deploy the **Monarch monitoring framework** ([Ziyad-Mabrouk/5g-monarch](https://github.com/Ziyad-Mabrouk/5g-monarch), forked from [niloysh/5g-monarch](https://github.com/niloysh/5g-monarch)). Note that this is only possible with Open5GS CN. 
+- Deploy a 5G RAdio Access network (RAN). Currently, 3 options are possible : OAI, srsRAN and UERANSIM. OAI and srsRAN supports both real 5G network devices in the R2lab testbed and emulation mode while UERANSIM only has emulation mode. In case the R2lab platform is selected, a specific R2lab playbook will run in parallel to Clean up and configure the R2lab resources: RRU, UEs and Fit Nodes.
 - Deploy the **OAI RAN stack** ([sopnode/oai5g-rru](https://github.com/sopnode/oai5g-rru)).
 
-> **Note:** This will only prepare the UEs, but will not connect them. That is done via one of the test scenarios below. However, you can uncomment the last section of the `playbooks/deploy.yml` file so that all the UEs in the `[qhats]` group of the `inventory/hosts.ini` will be connected to the 5G network.
+> **NOTA:** This will only prepare the UEs, but will not connect them to the 5G network. That is done via one of the test scenarios below. However, you can uncomment the last section of the `playbooks/deploy.yml` file so that all the UEs in the `[qhats]` group of the `inventory/hosts.ini` will be connected to the 5G network.
+
+This playbook uses the following repos:
+- **5g_ansible** (this repo) : [sopnode/5g_ansible](https://github.com/sopnode/5g_ansible)
+- **Open5GS Core** : [sopnode/open5gs-k8s](https://github.com/sopnode/open5gs-k8s)
+- **OAI OpenAirInterface Core and RAN** : [sopnode/oai5g-rru](https://github.com/sopnode/oai5g-rru)
+- **Free5gc Core** : [sopnode/free5gc-helm](https://github.com/sopnode/free5gc-helm) forked from [free5gc/free5gc-helm](https://github.com/free5gc/free5gc-helm).
 
 ---
 
@@ -247,7 +253,7 @@ ues:
 
 ---
 
-## Monitoring Dashboard Access [TBD]
+## Monitoring Dashboard Access
 
 After deployment, instructions will be printed to your terminal with the SSH command required to access the **Monarch monitoring dashboard**.
 
