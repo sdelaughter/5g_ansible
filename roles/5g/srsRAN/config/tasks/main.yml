@@ -77,6 +77,20 @@
       .gnbIp = "{{ srsran_network.n3.gnb_ip }}" |
       .n3networkName = "{{ n3networkName }}"
     ' "{{ values_file }}"
+  when not (rru = 'rfsim' and core == 'open5gs')
+
+- name: Update AMF address, gNB N3 IP and n3networkName
+  ansible.builtin.shell: >
+    {{ yq_bin_path }} eval -i '
+      .gnbConfig.cu_cp.amf.addr = "{{ srsran_network.n2.amf_ip }}" |
+      .gnbConfig.cu_cp.amf.port = {{ srsran_network.n2.amf_port }} |
+      .gnbConfig.cu_cp.amf.bind_addr = "{{ srsran_network.n3.gnb_ip }}" |
+      .gnbConfig.cu_up.ngu.socket = [{"bind_addr": "{{ srsran_network.n3.gnb_ip }}"}] |
+      .gnbIp = "{{ srsran_network.n3.gnb_ip }}" |
+      .n3networkName = "{{ n3networkName }}"
+    ' "{{ values_file }}"
+  when rru = 'rfsim' and core == 'open5gs'
+
 
 - name: Fix device_args for rfsim GNU Radio single-channel multi-UE
   ansible.builtin.shell: >
