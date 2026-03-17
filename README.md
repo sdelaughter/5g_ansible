@@ -27,17 +27,18 @@ This script configures an ansible playbook that will :
 - Install all required packages on the server(s).
 - Set up a Kubernetes cluster across the nodes.
 - Deploy a 5G Core Network (CN). Currently 3 options are possible : Free5GC, OAI or Open5GS. 
-- Optionally deploy the **Monarch monitoring framework** ([Ziyad-Mabrouk/5g-monarch](https://github.com/Ziyad-Mabrouk/5g-monarch), forked from [niloysh/5g-monarch](https://github.com/niloysh/5g-monarch)). Note that this is only possible with Open5GS CN. 
-- Deploy a 5G RAdio Access network (RAN). Currently, 3 options are possible : OAI, srsRAN and UERANSIM. OAI and srsRAN supports both real 5G network devices in the R2lab testbed and emulation mode while UERANSIM only has emulation mode. In case the R2lab platform is selected, a specific R2lab playbook will run in parallel to Clean up and configure the R2lab resources: RRU, UEs and Fit Nodes.
-- Deploy the **OAI RAN stack** ([sopnode/oai5g-rru](https://github.com/sopnode/oai5g-rru)).
+- Optionally deploy the *Monarch monitoring framework* in case Open5GS CN is selected. 
+- Deploy a 5G Radio Access network (RAN). Currently, 3 options are possible : OAI, srsRAN and UERANSIM. OAI and srsRAN supports both real 5G network devices in the R2lab testbed and emulation mode while UERANSIM is a pure 5G RAN emulation system. In case the R2lab platform is selected, a specific R2lab playbook will run in parallel to configure the R2lab resources: RRU, UEs and FIT R2lab nodes.
+- Optionally deploy a test scenario at the end of the deployment, see details below.
 
-> **NOTA:** This will only prepare the UEs, but will not connect them to the 5G network. That is done via one of the test scenarios below. However, you can uncomment the last section of the `playbooks/deploy.yml` file so that all the UEs in the `[qhats]` group of the `inventory/hosts.ini` will be connected to the 5G network.
 
-This playbook uses the following repos:
-- **5g_ansible** (this repo) : [sopnode/5g_ansible](https://github.com/sopnode/5g_ansible)
-- **Open5GS Core** : [sopnode/open5gs-k8s](https://github.com/sopnode/open5gs-k8s)
-- **OAI OpenAirInterface Core and RAN** : [sopnode/oai5g-rru](https://github.com/sopnode/oai5g-rru)
-- **Free5gc Core** : [sopnode/free5gc-helm](https://github.com/sopnode/free5gc-helm) forked from [free5gc/free5gc-helm](https://github.com/free5gc/free5gc-helm).
+This repo **5g_ansible** [sopnode/5g_ansible](https://github.com/sopnode/5g_ansible) leverages the following repos:
+ 
+- **Open5GS Core** : [sopnode/open5gs-k8s](https://github.com/sopnode/open5gs-k8s), forked from [niloysh/open5gs-k8s](https://github.com/niloysh/open5gs-k8s)
+- **OAI OpenAirInterface Core and RAN** : [sopnode/oai5g-rru](https://github.com/sopnode/oai5g-rru) and [charts](https://gitlab.eurecom.fr/turletti/charts) that leverage [oai/cn5g/oai-cn5g-fed](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed) and [openairinterface5G](https://gitlab.eurecom.fr/oai/openairinterface5g)
+- **Free5gc Core** : [sopnode/free5gc-helm](https://github.com/sopnode/free5gc-helm), forked from [free5gc/free5gc-helm](https://github.com/free5gc/free5gc-helm)
+- **srsran-helm** : [turletti/srsan-helm](https://github.com/turletti/srsran-helm), forked from [Ziyad-Mabrouk/srsran-helm](https://github.com/Ziyad-Mabrouk/srsran-helm)
+- **Monarch monitoring framework** : [Ziyad-Mabrouk/5g-monarch](https://github.com/Ziyad-Mabrouk/5g-monarch), forked from [niloysh/5g-monarch](https://github.com/niloysh/5g-monarch).
 
 ---
 
@@ -71,7 +72,7 @@ In the current version, two scenarios are available
 ./run_scenario.sh [-d] [--no-setup]
 ```
 - Connect all UEs defined in `[qhats]` host group.
-- Each UE runs downlink then uplink iperf3 test *separately*.
+- Each UE runs downlink then uplink iperf3 test in a sequential way.
 > **Note:** This is the baseline scenario used to for basic connectivity testing and benchmarking.
 
 
