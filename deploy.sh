@@ -959,14 +959,13 @@ deploy() {
     local vars="fiveg_profile=${PROFILE_5G}"
 
     # ---- Inject default Docker PAT ----
-    # Tu peux remplacer 'MON_PAT_PAR_DEFAUT' par le PAT dédié pour ce playbook
     if [[ -z "${DOCKER_PAT+x}" ]]; then
-        vars="$vars docker_pat=MON_PAT_PAR_DEFAUT"
+        vars="$vars docker_pat=r2labuser2-pwd"
     else
         vars="$vars docker_pat=${DOCKER_PAT}"
     fi
 
-    # ---- Traiter les EXTRA_VARS_ARRAY existants ----
+    # ---- Handle existing EXTRA_VARS_ARRAY existants ----
     for ev in "${EXTRA_VARS_ARRAY[@]:-}"; do
         # Clean argument if it starts by -- so that ansible handles it as a variable
         clean_ev=$(echo "$ev" | sed 's/^--//')
