@@ -21,9 +21,14 @@ yq_url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_l
 srsran_network_map:
   free5gc:
     n2:
-      amf_ip: "10.100.50.234" # "{{ hostvars[groups['core_node'][0]].ip }}"
-      gnb_ip: "10.100.50.250"      # IP gNB sur n3 (OVS, stable) - when bridge_enabled
+      amf_ip: >-
+        {% if core_node_name == ran_node_name %}
+        {{ hostvars[groups['core_node'][0]].ip }} # as ipvlan multus is used, this allows to avoid create n2 multus interfcae in the gnb pod
+        {% else %}
+        10.100.50.234
+        {% endif %}
       amf_port: 38412 # 31412
+      gnb_ip: "10.100.50.250"           # IP gNB sur n3 - when bridge_enabled
       amf_direct_ip: "10.100.50.234"    # IP AMF sur n2 (OVS, stable) - when bridge_enabled
       amf_direct_port: 38412            # port direct AMF - when bridge_enabled
     n3:
