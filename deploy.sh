@@ -948,6 +948,7 @@ reserve_r2lab() {
     fi
 }
 
+
 ############################
 # DEPLOYMENT
 ############################
@@ -956,31 +957,41 @@ deploy() {
 
     ANSIBLE_EXTRA_ARGS=()
     local vars="fiveg_profile=${PROFILE_5G}"
-  
+
+    # ---- Inject default Docker PAT ----
+    # Tu peux remplacer 'MON_PAT_PAR_DEFAUT' par le PAT dédié pour ce playbook
+    if [[ -z "${DOCKER_PAT+x}" ]]; then
+        vars="$vars docker_pat=MON_PAT_PAR_DEFAUT"
+    else
+        vars="$vars docker_pat=${DOCKER_PAT}"
+    fi
+
+    # ---- Traiter les EXTRA_VARS_ARRAY existants ----
     for ev in "${EXTRA_VARS_ARRAY[@]:-}"; do
-	# Clean argument if it starts by -- so that ansible handles it as a variable
-	clean_ev=$(echo "$ev" | sed 's/^--//')
-	vars="$vars $clean_ev"
+        # Clean argument if it starts by -- so that ansible handles it as a variable
+        clean_ev=$(echo "$ev" | sed 's/^--//')
+        vars="$vars $clean_ev"
     done
 
     ANSIBLE_EXTRA_ARGS+=(-e "$vars")
 
     echo "Launching deployment..."
-  
+
     run_cmd ansible-galaxy install -r collections/requirements.yml
 
     if [[ "$platform" == "r2lab" ]]; then
-	echo "ansible-playbook -i $INVENTORY ${ANSIBLE_EXTRA_ARGS[@]} playbooks/deploy_r2lab.yml &"
-	run_cmd ansible-playbook -i "$INVENTORY" \
-		"${ANSIBLE_EXTRA_ARGS[@]}" \
-		playbooks/deploy_r2lab.yml 2>&1 | tee ${DIR_LOGS}/logs-r2lab.txt &
+        echo "ansible-playbook -i $INVENTORY ${ANSIBLE_EXTRA_ARGS[@]} playbooks/deploy_r2lab.yml &"
+        run_cmd ansible-playbook -i "$INVENTORY" \
+            "${ANSIBLE_EXTRA_ARGS[@]}" \
+            playbooks/deploy_r2lab.yml 2>&1 | tee ${DIR_LOGS}/logs-r2lab.txt &
     fi
 
     echo "ansible-playbook -i $INVENTORY ${ANSIBLE_EXTRA_ARGS[@]} playbooks/deploy.yml"
 
     run_cmd ansible-playbook -i "$INVENTORY" \
-	    "${ANSIBLE_EXTRA_ARGS[@]}" \
-	    playbooks/deploy.yml 2>&1 | tee ${DIR_LOGS}/logs.txt
+        "${ANSIBLE_EXTRA_ARGS[@]}" \
+        playbooks/deploy.yml 2>&1 | tee ${DIR_LOGS}/logs.txt
+
 
     echo ""
     echo "=========================================="
@@ -988,6 +999,7 @@ deploy() {
     echo "=========================================="
     echo ""
 }
+
 
 ############################
 # SCENARIOS
