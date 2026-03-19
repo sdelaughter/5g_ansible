@@ -21,7 +21,7 @@ yq_url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_l
 srsran_network_map:
   free5gc:
     n2:
-      amf_ip: "10.100.50.249"    # static IP n2 AMF
+      amf_ip: "{% if core_node_name == ran_node_name %}10.100.50.249{% else %}10.100.50.234{% endif %}"
       amf_port: 38412
       gnb_bind_ip: "10.100.50.250"
     n3:
