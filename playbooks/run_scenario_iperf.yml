@@ -15,7 +15,7 @@
   tasks:
     - name: Determine target server host
       set_fact:
-        target_server_host: "{{ target_server_host | default(core_node_name) }}"
+        target_server_host: "{{ target_server_host | default(groups['core_node'][0]) }}"
         cacheable: yes
       run_once: true
 
@@ -43,7 +43,7 @@
       when: target_server_host not in groups.get('all', [])
 
 - name: Run iperf servers
-  hosts: "{{ target_server_host }}"
+  hosts: "{{ target_server_host | default(groups['core_node'][0]) }}"
   become: true
   vars:
     ignore_task_errors: yes
@@ -78,7 +78,7 @@
       when: rru != "rfsim"
 
 - name: "📊 FINAL SUMMARY (-- show most recent iperf results (300s max))"
-  hosts: "{{ target_server_host }}"
+  hosts: "{{ target_server_host | default(groups['core_node'][0]) }}"
   become: true
   gather_facts: false
   vars:

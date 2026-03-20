@@ -7,7 +7,7 @@
   set_fact:
     base_port: 5201
     actual_nb_ues: "{{ nb_ues | default(3) }}"
-    iperf_bind_ip: "{{ target_server_ip | default(hostvars[core_node_name]['ip']) }}"
+    iperf_bind_ip: "{{ target_server_ip | default(hostvars[groups['core_node'][0]]['ip']) }}"
 
 - name: Ensure iperf3 is installed on target_host
   apt:
