@@ -29,6 +29,6 @@
     ue_name: "{{ ue.key }}"
     ue_data: "{{ ue.value }}"
     slice_data: "{{ fiveg.slices | selectattr('name', 'equalto', ue.value.slice) | first }}"
-  loop: "{{ fiveg.ues | dict2items | selectattr('key', 'in', ['UE18', 'UE19', 'UE20']) | sort(attribute='key') | list }}"
+  loop: "{{ fiveg.ues | dict2items | selectattr('key', 'in', ['uesim01', 'uesim02', 'uesim03']) | sort(attribute='key') | list }}"
   loop_control:
     loop_var: ue

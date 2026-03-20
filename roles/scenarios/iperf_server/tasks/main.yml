@@ -1,6 +1,6 @@
 ---
 #
-# Deploy iperf servers on core_node
+# Deploy iperf servers on target_host
 #
 
 - name: Set defaults
@@ -8,8 +8,7 @@
     base_port: 5201
     actual_nb_ues: "{{ nb_ues | default(3) }}"
 
-# Ensure iperf3 is installed on the host
-- name: Ensure iperf3 is installed on core_node
+- name: Ensure iperf3 is installed on target_host
   apt:
     name: iperf3
     state: present
