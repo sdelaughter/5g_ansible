@@ -15,13 +15,13 @@
   tasks:
     - name: Determine target server host
       set_fact:
-        target_server_host: "{{ target_server_host | default('core_node', true) }}"
+        target_server_host: "{{ target_server_host | default(core_node_name) }}"
         cacheable: yes
       run_once: true
 
     - name: Get target server IP
       set_fact:
-        target_server_ip: "{{ hostvars[target_server_host].ip }}"
+        target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
       run_once: true
 
     - name: Display target server configuration
@@ -43,12 +43,11 @@
       when: target_server_host not in groups.get('all', [])
 
 - name: Run iperf servers
-  hosts: "{{ target_server_host | default('core_node') }}"
+  hosts: "{{ target_server_host }}"
   become: true
   vars:
     ignore_task_errors: yes
     nb_ues: "{{ 3 if rru == 'rfsim' else groups['qhats'] | length }}"
-    target_server_ip: "{{ hostvars[groups['core_node'][0]].ip if target_server_host | default('core_node') == 'core_node' else hostvars[target_server_host].ip }}"
   roles:
     - role: scenarios/iperf_server
 
@@ -57,14 +56,14 @@
   become: true
   gather_facts: false
   vars:
-    target_server_ip: "{{ hostvars[target_server_host].ip }}"
+    target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
     target_server_host: "{{ target_server_host }}"
     nb_ues: "{{ 3 if rru == 'rfsim' else groups['qhats'] | length }}"
     ignore_task_errors: yes
   tasks:
     - name: Run RFSIM role
       include_role:
-        name: scenarios/iperf/rfsim-ue-to-core_node
+        name: scenarios/iperf/rfsim-ue-to-target_server
       when: rru == "rfsim"
 
 - name: Optionally run UE to target_server iperf tests from Faraday
@@ -72,14 +71,14 @@
   vars:
     ignore_task_errors: yes
     nb_ues: "{{ groups['qhats'] | length }}"
-    target_server_ip: "{{ hostvars[target_server_host].ip }}"
+    target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
     target_server_host: "{{ target_server_host }}"
   roles:
     - role: scenarios/iperf/ue-to-target_server
       when: rru != "rfsim"
 
 - name: "📊 FINAL SUMMARY (-- show most recent iperf results (300s max))"
-  hosts: "{{ target_server_host | default('core_node') }}"
+  hosts: "{{ target_server_host }}"
   become: true
   gather_facts: false
   vars:
