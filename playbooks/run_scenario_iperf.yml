@@ -62,7 +62,7 @@
     ignore_task_errors: yes
   roles:
     - role: scenarios/iperf/rfsim-ue-to-target_server
-  when: rru == "rfsim"
+    when: rru == "rfsim"
 
 - name: Optionally run UE to target_server iperf tests from Faraday
   hosts: faraday
