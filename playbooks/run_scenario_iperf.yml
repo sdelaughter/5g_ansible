@@ -46,6 +46,7 @@
   hosts: "{{ target_server_host | default(groups['core_node'][0]) }}"
   become: true
   vars:
+    target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
     ignore_task_errors: yes
     nb_ues: "{{ 3 if rru == 'rfsim' else groups['qhats'] | length }}"
   roles:
