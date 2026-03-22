@@ -958,14 +958,6 @@ deploy() {
     ANSIBLE_EXTRA_ARGS=()
     local vars="fiveg_profile=${PROFILE_5G}"
 
-    # ---- Inject default Docker PAT ----
-    if [[ -z "${DOCKER_PAT+x}" ]]; then
-        vars="$vars docker_pat=r2labuser2-pwd"
-    else
-        vars="$vars docker_pat=${DOCKER_PAT}"
-    fi
-
-    # ---- Handle existing EXTRA_VARS_ARRAY existants ----
     for ev in "${EXTRA_VARS_ARRAY[@]:-}"; do
         # Clean argument if it starts by -- so that ansible handles it as a variable
         clean_ev=$(echo "$ev" | sed 's/^--//')
