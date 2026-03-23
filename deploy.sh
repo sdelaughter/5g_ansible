@@ -447,12 +447,20 @@ if [[ "$run_scenario" == true && ( "$scenario" == "Iperf R2lab scenario without 
         2) target_server_node="sopnode-f2" ;;
         3) target_server_node="sopnode-f3" ;;
         4) target_server_node="sopnode-w3" ;;
-        *) echo "❌ Invalid iperf target server node"; exit 1 ;;
+        *) echo "❌ Invalid iperf target server choice"; exit 1 ;;
       esac
     fi
 fi
 echo "target iperf server node: ${target_server_node}"
-exit
+case "${target_server_node}" in
+    "${core_node}"|"${ran_node}"|"${monitor_node}")
+	echo "target server already part of inventory"
+	;;
+    *)
+	echo "target server should be added"
+	;;
+esac
+exit 1
 }
 
 ############################
