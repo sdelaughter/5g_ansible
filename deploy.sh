@@ -99,9 +99,9 @@ parse_args() {
 
 init_defaults_and_banner() {
 
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[1;33m"
+#RED="\033[0;31m"
+#GREEN="\033[0;32m"
+#YELLOW="\033[1;33m"
 CYAN="\033[1;36m"
 RESET="\033[0m"
 
@@ -248,7 +248,8 @@ if [[ "$core" != "oai" && "$ran" != "ueransim" ]]; then
     echo "1) sopnode-f1"
     echo "2) sopnode-f2"
     echo "3) sopnode-f3"
-    read -rp "Enter choice [1-3]: " monitor_node_choice
+    echo "4) sopnode-w3"
+    read -rp "Enter choice [1-4]: " monitor_node_choice
     if [[ -z "${monitor_node_choice}" ]]; then
       monitor_node=${DEFAULT_MONITOR_NODE}
     else
@@ -256,6 +257,7 @@ if [[ "$core" != "oai" && "$ran" != "ueransim" ]]; then
         1) monitor_node="sopnode-f1" ;;
         2) monitor_node="sopnode-f2" ;;
         3) monitor_node="sopnode-f3" ;;
+        4) monitor_node="sopnode-w3" ;;
         *) echo "❌ Invalid Monitoring node"; exit 1 ;;
       esac
     fi
@@ -397,7 +399,7 @@ if [[ "$scenario_choice" =~ ^[Yy]$ ]]; then
 #  if [[ "$platform" == "r2lab" && "${#R2LAB_UES[@]}" -ge 4 ]]; then
 #    options+=("Parallel Iperf Test (without interference)")
 #  fi
-  if [[ "$platform" == "rfsim" && ( "$ran" == "oai" || "$ran" == "srsRAN" || "$ran" == "ueransim" ) ]]; then
+  if [[ "$platform" == "rfsim" ]]; then
     options+=("Iperf RFSIM scenario without interference")
   fi
   if [[ "$platform" == "r2lab" && "${#R2LAB_UES[@]}" -ge 1 ]]; then
@@ -408,7 +410,7 @@ if [[ "$scenario_choice" =~ ^[Yy]$ ]]; then
     echo "$((i+1))) ${options[$i]}"
   done
 
-  read -rp "Enter your choice: " scenario_choice
+  read -rp "Confirm your choice: " scenario_choice
 
   if [[ "$scenario_choice" =~ ^[0-9]+$ ]] &&
     ((scenario_choice >= 1 && scenario_choice <= ${#options[@]})); then
@@ -418,15 +420,42 @@ if [[ "$scenario_choice" =~ ^[Yy]$ ]]; then
   else
     echo "❌ Invalid choice"
   fi
+ 
 fi
 
 # ========== Iperf Tests Setup (without interference) ==========
-# For the normal iperf tests without interference, we do not need any additional user inputs, since the UEs are assumed to be already connected to the network after deployment.
-# We sill use the run_iperf_test.sh script to run the selected iperf test scenario after deployment.
+
+# Simply use the run_iperf_test.sh script to run the selected iperf test scenario after deployment.
+
 run_iperf_test=false
 if [[ "$run_scenario" == true && ( "$scenario" == "Iperf R2lab scenario without interference" || "$scenario" == "Parallel Iperf Test (without interference)" || "$scenario" == "Iperf RFSIM scenario without interference" ) ]]; then
-  run_iperf_test=true
+    run_iperf_test=true
 fi
+
+if [[ "$run_scenario" == true && "$scenario" == "Iperf R2lab scenario without interference" ]]; then
+    DEFAULT_TARGET_SERVER_NODE=${core_node}
+    echo "By default, iperf will run between UEs and the bare-metal server hosting 5G core network pods, i.e., ${DEFAULT_TARGET_SERVER_NODE}"
+    echo ""
+    echo "Select the target node to deploy iperf servers : by default, ${DEFAULT_TARGET_SERVER_NODE}:"
+    echo "1) sopnode-f1"
+    echo "2) sopnode-f2"
+    echo "3) sopnode-f3"
+    echo "4) sopnode-w3"
+    read -rp "Enter choice [1-4]: " iperf_server_choice
+    if [[ -z "${iperf_server_choice}" ]]; then
+	target_server_node=${DEFAULT_TARGET_SERVER_NODE}
+    else
+      case "${monitor_node_choice}" in
+        1) target_server_node="sopnode-f1" ;;
+        2) target_server_node="sopnode-f2" ;;
+        3) target_server_node="sopnode-f3" ;;
+        4) target_server_node="sopnode-w3" ;;
+        *) echo "❌ Invalid iperf target server node"; exit 1 ;;
+      esac
+    fi
+fi
+echo "target iperf server node: ${target_server_node}"
+exit
 }
 
 ############################
