@@ -428,11 +428,8 @@ fi
 # Simply use the run_iperf_test.sh script to run the selected iperf test scenario after deployment.
 
 run_iperf_test=false
-if [[ "$run_scenario" == true && ( "$scenario" == "Iperf R2lab scenario without interference" || "$scenario" == "Parallel Iperf Test (without interference)" || "$scenario" == "Iperf RFSIM scenario without interference" ) ]]; then
+if [[ "$run_scenario" == true && ( "$scenario" == "Iperf R2lab scenario without interference" || "$scenario" == "Iperf RFSIM scenario without interference" ) ]]; then
     run_iperf_test=true
-fi
-
-if [[ "$run_scenario" == true && "$scenario" == "Iperf R2lab scenario without interference" ]]; then
     DEFAULT_TARGET_SERVER_NODE=${core_node}
     echo "By default, iperf will run between UEs and the bare-metal server hosting 5G core network pods, i.e., ${DEFAULT_TARGET_SERVER_NODE}"
     echo ""
