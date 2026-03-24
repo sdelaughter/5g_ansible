@@ -2,11 +2,10 @@
 
 ![setup](images/setup.png)
 
-This repository provides a fully automated [Ansible](https://www.ansible.com/) framework for deploying and monitoring a private sliced 5G network using Kubernetes. It is intended to be run from the [SLICES platform Webshell](https://post-5g-web.slices-ri.eu/), assuming you can obtain:
+This repository provides a fully automated [Ansible](https://www.ansible.com/) framework for deploying and monitoring a private sliced 5G network using Kubernetes. It is intended to be run from the [SLICES platform Webshell](https://post-5g-web.slices-ri.eu/).
 
-- A valid [SLICES account](https://doc.slices-ri.eu/).
-- A valid reservation for server(s) such as  `sopnode-f1`, `sopnode-f2`, `sopnode-f3` (from [Duckburg](https://duckburg.net.cit.tum.de/)).
-- A valid [R2Lab account and reservation](https://r2lab.inria.fr/tuto-010-registration.md).
+To run it, you need a valid [SLICES account](https://doc.slices-ri.eu/). If you select a scenario with real 5G hardware (RUs and UEs) you also need a valid [R2Lab account](https://r2lab.inria.fr/tuto-010-registration.md). 
+
 
 > NOTA: First version of this script was developed in June 2025 by Ziyad Mabrouk as part of his internship at [Inria Sophia Antipolis](https://www.inria.fr/en/inria-centre-universite-cote-azur), under the supervision of: Thierry Turletti, Chadi Barakat, and Walid Dabbous.
 
@@ -22,14 +21,18 @@ cd 5g_ansible
 ./deploy.sh
 ```
 
-This script configures an ansible playbook that will :
+This script helps you interactively configure a 5G deployment scenario by allowing you to choose the type of core network, the type of RAN, monitoring functions (partly based on Monarch), and an optional test scenario once the deployment is completed. It also allows you to select the servers on which the 5G pods will run, or to choose the default ones. This will generate a reservation for server(s) such as  `sopnode-f1`, `sopnode-f2`, `sopnode-f3` (from [Duckburg](https://duckburg.net.cit.tum.de/)).
+
+
+This script will first attempt to reserve the servers and possibly the 5G RAN nodes you selected for your 5G deployment. Then it will :
+
 - Allocate and reset the reserved machines using `pos`.
 - Install all required packages on the server(s).
 - Set up a Kubernetes cluster across the nodes.
 - Deploy a 5G Core Network (CN). Currently 3 options are possible : Free5GC, OAI or Open5GS. 
 - Optionally deploy the *Monarch monitoring framework* in case Open5GS CN is selected. 
 - Deploy a 5G Radio Access network (RAN). Currently, 3 options are possible : OAI, srsRAN and UERANSIM. OAI and srsRAN supports both real 5G network devices in the R2lab testbed and emulation mode while UERANSIM is a pure 5G RAN emulation system. In case the R2lab platform is selected, a specific R2lab playbook will run in parallel to configure the R2lab resources: RRU, UEs and FIT R2lab nodes.
-- Optionally deploy a test scenario at the end of the deployment, see details below.
+- Optionally deploy a test scenario at the end of the deployment, see more details below.
 
 
 This repo **5g_ansible** [sopnode/5g_ansible](https://github.com/sopnode/5g_ansible) leverages the following repos:
@@ -42,7 +45,7 @@ This repo **5g_ansible** [sopnode/5g_ansible](https://github.com/sopnode/5g_ansi
 
 ---
 
-## Available Scenarios
+## Available Test Scenarios
 The `deploy.sh` can be used to configure and deploy a scenario (iperf or interference). If such a scenario option is selected, the `deploy.sh`  script will execute, once the 5G CORE+CN deployement is ready, another script `run_scenario.sh` that can also be run manually, provided that the inventory is already configured for the target scenario.
 
 #### Command Overview
@@ -92,7 +95,7 @@ In the current version, two scenarios are available
 
 ## Inventory Configuration
 
-The deployment is driven by `inventory/hosts.ini`, where you define:
+The deployment is driven by `inventory/default/hosts.ini`, automatically configured by the *deploy.sh* script:
 
 - Core, RAN, and Monitoring nodes
 - Which node acts as Kubernetes master/worker
