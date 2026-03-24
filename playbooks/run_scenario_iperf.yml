@@ -14,6 +14,7 @@
 - name: Set target server configuration
   hosts: localhost
   gather_facts: false
+  run_once: true # enforce wait for the end of "set_fact: target_server_host" before next block "add_host: {{ target_server_host }}"
   tasks:
     - name: Determine target server host
       set_fact:
