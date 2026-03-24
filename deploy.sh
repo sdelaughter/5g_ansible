@@ -116,7 +116,7 @@ DEFAULT_INVENTORY="default"
 DEFAULT_CORE="open5gs"
 DEFAULT_RAN="oai"
 DEFAULT_PLATFORM="r2lab"
-DEFAULT_RU="n320"
+DEFAULT_RU="n300"
 DEFAULT_LIST_UE="qhat01"
 
 PROFILE_5G="${PROFILE_5G:-$DEFAULT_PROFILE_5G}"
@@ -216,7 +216,7 @@ echo ""
 echo "Select the node to deploy RAN ($ran) on (default: ${DEFAULT_RAN_NODE}):"
 echo "1) sopnode-f1"
 echo "2) sopnode-f2"
-echo "3) sopnode-f3"
+echo "3) sopnode-f3 (mandatory for scenarios with benetel RU)"
 read -rp "Enter choice [1-3]: " ran_node_choice
 if [[ -z "${ran_node_choice}" ]]; then
   ran_node=${DEFAULT_RAN_NODE}
@@ -288,11 +288,10 @@ R2LAB_UES=()
 if [[ "$platform" == "r2lab" ]]; then
   if [[ "$ran" == "oai" ]]; then
       R2LAB_RUs=("benetel1" "benetel2" "jaguar" "panther" "n300" "n320")
-  else # $ran == "srsRAN" for now, only n3xx RUs supported
-      R2LAB_RUs=("n300" "n320")
+  else # $ran == "srsRAN" for now, only n3xx and benetel RUs supported
+      R2LAB_RUs=("n300" "n320" "benetel1" "benetel2")
   fi
   # Select RU
-  # Make jaguar the default if the user just presses enter
   echo ""
   echo "Select the RU to use (default: ${DEFAULT_RU}):"
   for i in "${!R2LAB_RUs[@]}"; do
@@ -312,10 +311,10 @@ if [[ "$platform" == "r2lab" ]]; then
   echo "RU is $R2LAB_RU"
   case "${R2LAB_RU}" in
       "benetel1"|"benetel2")
-	  echo "Currently Benetel scenarios mandates OAI core and OAI ran on sopnode-f3, enforcing parameters..."
-	  core="oai"
-	  ran="oai"
-	  ran_node="sopnode-f3"
+	  if [[ "${ran_node}" != "sopnode-f3" ]]; then
+	      echo "❌ Invalid server used for RAN pods with benetel RU, only sopnode-f3 currently supported"
+	      exit 1
+	  fi
 	  fhi72=true
           ;;
       *)
