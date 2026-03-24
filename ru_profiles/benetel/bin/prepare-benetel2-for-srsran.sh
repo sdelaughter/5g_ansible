@@ -20,6 +20,6 @@ ssh "${RU_IP}" /sbin/reboot
 # sleep 60s
 sleep 60
 
-timeout 60 bash -c 'until ping -c 1 -W 2 ${RU_IP}" >/dev/null 2>&1; do sleep 1; done' || { echo "Error: RU ${RU_IP} unreachable after reboot"; exit 1; }
+timeout 60 bash -c "until ping -c 1 -W 2 ${RU_IP} >/dev/null 2>&1; do sleep 1; done" || { echo "Error: RU ${RU_IP} unreachable after reboot"; exit 1; }
 
 echo "Successfully load $CONFIG on ${RU_IP}, now up and running"
