@@ -63,13 +63,13 @@ ues:
     slice: slice1
   qhat03:
     imsi_suffix: "0000000008"
-    slice: slice2
+    slice: slice1
   qhat10:
     imsi_suffix: "0000000009"
     slice: slice1
   qhat11:
     imsi_suffix: "0000000010"
-    slice: slice1
+    slice: slice2
   qhat20:
     imsi_suffix: "0000000011"
     slice: slice1
