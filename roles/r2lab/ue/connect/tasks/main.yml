@@ -38,7 +38,7 @@
 - name: Stop then Start UE via jump host
   shell: "ssh root@{{ ue_item }} 'stop.sh; start.sh -F {{ current_dnn }}'"
   when: current_dnn is defined and (check_ip_ready.stdout == "" or check_ip_ready.rc != 0)
-  ignore_errors: "{{ ignore_errors | default(true) }}"
+  ignore_errors: true #"{{ ignore_errors | default(true) }}"
 
 - name: Retrieve wwan0 IP for {{ ue_item }}
   shell: |
@@ -49,7 +49,7 @@
   retries: 5
   delay: 2
   changed_when: false
-  ignore_errors: "{{ ignore_task_errors | default(false) }}"
+  ignore_errors: true #"{{ ignore_task_errors | default(false) }}"
 
 - name: Wait until wwan0 interface is fully up
   shell: ssh root@{{ ue_item }} "ip link show wwan0"
@@ -58,6 +58,7 @@
   delay: 2
   until: "'UP' in wwan0_status.stdout"
   changed_when: false
+  ignore_errors: true
 
 - name: Add route to {{ target_server }} via UPF IP when wwan0 is ready
   shell: |
