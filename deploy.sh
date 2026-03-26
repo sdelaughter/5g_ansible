@@ -422,11 +422,9 @@ fi
 
 # ========== Iperf Tests Setup (without interference) ==========
 
-# Simply use the run_iperf_test.sh script to run the selected iperf test scenario after deployment.
+# Simply use the run_scenario.sh script to run the selected iperf test scenario after deployment.
 
-run_iperf_test=false
-if [[ "$run_scenario" == true && ( "$scenario" == "Iperf R2lab scenario without interference" || "$scenario" == "Iperf RFSIM scenario without interference" ) ]]; then
-    run_iperf_test=true
+if [[ "${run_scenario}" == true ]]; then
     DEFAULT_IPERF_SERVER_NODE=${core_node}
     echo "By default, iperf will run between UEs and the bare-metal server hosting 5G core network pods, i.e., ${DEFAULT_IPERF_SERVER_NODE}"
     echo ""
@@ -574,7 +572,7 @@ if [[ "$run_interference_test" == true ]]; then
   echo "  GAIN: $GAIN"
   echo "  NOISE_BANDWIDTH: $NOISE_BANDWIDTH"
 fi
-if [[ "$run_iperf_test" == true ]]; then
+if [[ "${run_scenario}" == true ]]; then
   echo "Iperf Test: enabled"
   echo "  Scenario: $scenario"
   case "$scenario" in
@@ -583,6 +581,9 @@ if [[ "$run_iperf_test" == true ]]; then
       ;;
     "Iperf RFSIM scenario without interference")
       echo "Will run iperf sequentially OAI-NR-UE1, OAI-NR-UE2 and OAI-NR-UE3 for 30 seconds each with an in-between wait time of 5 seconds in downlink then uplink (use the iperf_duration and iperf_sleep ansible parameters to change the default values (in s))"
+      ;;
+    "Iperf R2lab scenario with interference")
+      echo "Will run iperf with interference (to explain further)"
       ;;
   esac
   echo "iperf server will run on the bare-metal ${iperf_server_node} server."
@@ -1134,11 +1135,6 @@ if [[ "$run_interference_test" == true && -n "${viz_usrp:-}" ]]; then
   echo "ssh -t ${R2LAB_USERNAME}@faraday.inria.fr -L 5901:127.0.0.1:5901 ssh root@${fit_node} -L 5901:127.0.0.1:5901"
   echo ""
   echo "Step 2: Open your VNC viewer and connect to localhost:1 (using password: 1234567890)"
-  echo ""
-  echo "Note: to rerun this interference scenario, do: "
-  echo ""
-  echo "export MODE=${MODE}"
-  echo "./run_iperf_test.sh -i --no-setup"
   echo ""
 fi
 
