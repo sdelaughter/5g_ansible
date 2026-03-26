@@ -17,35 +17,32 @@
   hosts: localhost
   gather_facts: false
   run_once: true
+
   tasks:
     - name: Determine target server host
       set_fact:
         target_server_host: >-
           {{
             target_server_host
-            | default(
-                (groups['iperf_server_node'] | default([]) | first),
-                true
-              )
+            | default(groups['iperf_server_node'] | default([]) | first, true)
             | default(groups['core_node'][0])
           }}
         cacheable: yes
-      run_once: true
-    
-    - name: Get target server IP
+
+    - name: Determine target server IP
       set_fact:
-        target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
-      run_once: true
-    
-    - name: Display target server configuration
-      debug:
-        msg: |
-          ✓ Target Server Configuration:
-            Host: {{ target_server_host }}
-            IP: {{ target_server_ip }}
-      run_once: true
+        target_server_ip: >-
+          {{
+            hostvars[target_server_host].ip
+            | default(hostvars[target_server_host].ansible_host)
+          }}
+        cacheable: yes
 
-
+    - debug:
+        msg:
+          - "Target host = {{ target_server_host }}"
+          - "Target IP   = {{ target_server_ip }}"
+	  
 - name: Main Test Sequence on Faraday
   hosts: faraday
   gather_facts: false
@@ -53,10 +50,8 @@
   vars:
     fiveg_profile: default
     duration: 12
-    target_server_host: "{{ hostvars['localhost'].get('target_server_host', groups['iperf_server_node'][0]) }}"
-    target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
-
-    core_ip: "{{ hostvars[groups['core_node'][0]]['ip'] | default(hostvars[groups['core_node'][0]]['ansible_host']) }}"
+    target_server_host: "{{ hostvars['localhost']['target_server_host'] }}"
+    target_server_ip: "{{ hostvars['localhost']['target_server_ip'] }}"
 
   tasks:
 
@@ -124,8 +119,8 @@
         - include_role:
             name: scenarios/iperf_server
           vars:
-	    target_server_host: "{{ hostvars['localhost'].get('target_server_host', groups['iperf_server_node'][0]) }}"
-            target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
+            target_server_host: "{{ hostvars['localhost']['target_server_host'] }}"
+            target_server_ip: "{{ hostvars['localhost']['target_server_ip'] }}"
             nb_ues: "1"
 
     # ---------------- START IPERF ----------------
@@ -142,7 +137,7 @@
         seconds: 100
 
     # =========================================================
-    #  INTERFERENCE NODE INITIALIZATION (FIXED VERSION)
+    #  INTERFERENCE NODE INITIALIZATION 
     # =========================================================
 
     - set_fact:
@@ -159,6 +154,14 @@
     - name: Debug chosen interference node
       debug:
         msg: "Interference node = {{ interference_node }} (type={{ hostvars[faraday_host].interference_usrp }})"
+
+    - name: Install UHD + GNU Radio on target_server_host for n300/n320
+      include_role:
+        name: setup/uhd-gnuradio
+      delegate_to: "{{ target_server_host }}"
+      become: true
+      run_once: true
+      when: node in ["n300","n320"]
 
     # ---------------- RUN INTERFERENCE ----------------
     - name: Run noise generator
@@ -198,7 +201,7 @@
       find:
         paths: "/root/IPERF"
         patterns: "iperf_*.log"
-      delegate_to: "{{ groups['core_node'][0] }}"
+      delegate_to: "{{ hostvars['localhost']['target_server_host'] }}"
       become: true
       register: iperf_files
 
@@ -206,7 +209,7 @@
       command: "cat {{ item.path }}"
       loop: "{{ iperf_files.files | sort(attribute='path') }}"
       register: log_contents
-      delegate_to: "{{ groups['core_node'][0] }}"
+      delegate_to: "{{ hostvars['localhost']['target_server_host'] }}"
       become: true
       when: iperf_files.matched > 0
       changed_when: false
