@@ -42,6 +42,12 @@
       - libpulse-dev
       - liblog4cpp5-dev
       - libzmq3-dev
+      - libgsl-dev
+      - gsl-bin
+      - libsdl2-dev
+      - libcodec2-dev
+      - libiio-dev
+      - libad9361-dev
       # Qt5
       - qtbase5-dev
       - libqt5opengl5-dev
