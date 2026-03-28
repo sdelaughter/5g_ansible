@@ -768,19 +768,19 @@ if [[ "${run_interference_test:-}" == true ]]; then
   else
     # noise is n300/n320 (no fit mapping)
     if [[ -n "$viz_info" ]]; then
-      # we need two slots, put the OTHER fit first and the viz fit second
+      # we need two slots, put the OTHER fit first and the viz fit second ## TO REMOVE
       read -r v_name v_num v_usrp <<<"$viz_info"
       if [[ "$v_name" == "fit02" ]]; then
-        append_fit "fit08" 8 b205
+        #append_fit "fit08" 8 b205 ## TO REMOVE
         append_fit "$v_name" "$v_num" "$v_usrp"
       else
-        append_fit "fit02" 2 b210
+        #append_fit "fit02" 2 b210 ## TO REMOVE
         append_fit "$v_name" "$v_num" "$v_usrp"
       fi
     else
       # noise is n300/n320 and no viz requested -> do not add fit nodes (noise is RU-based)
       # To preserve previous behavior, we still add a commented example entry (no active fit nodes)
-      :
+      : # i.e., nop
     fi
   fi
 
