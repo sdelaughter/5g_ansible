@@ -1,4 +1,33 @@
 ---
+# --- Check existing UHD ---
+- name: Check if UHD is installed
+  shell: |
+    export PATH={{ install_prefix }}/bin:$PATH
+    uhd_config_info --version
+  args:
+    executable: /bin/bash
+  register: uhd_check
+  ignore_errors: true
+
+# --- Check existing GNU Radio ---
+- name: Check if GNU Radio is installed
+  shell: |
+    export PATH={{ install_prefix }}/bin:$PATH
+    gnuradio-config-info --version
+  args:
+    executable: /bin/bash
+  register: gnuradio_check
+  ignore_errors: true
+
+# --- Skip role if installed versions match target ---
+- name: Skip UHD + GNU Radio build if target versions already installed
+  ansible.builtin.meta: end_play
+  when:
+    - uhd_check.rc == 0
+    - gnuradio_check.rc == 0
+    - uhd_check.stdout | trim == uhd_version
+    - gnuradio_check.stdout | trim == gnuradio_version
+
 - name: Ensure required packages are installed (Ubuntu/Debian)
   apt:
     name:
