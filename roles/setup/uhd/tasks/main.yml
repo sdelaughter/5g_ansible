@@ -13,7 +13,7 @@
   debug:
     msg: "UHD installed: {{ uhd_check.stdout | default('none') }}"
 
-# Build UHD only if version is missing
+# Build UHD only if the installed version is different from target
 - name: Build UHD only if target version not installed
   block:
 
@@ -37,7 +37,7 @@
         state: present
         update_cache: yes
 
-    # --- Clean previous UHD build ---
+    # --- Clean previous UHD build only if source directory exists ---
     - name: Clean previous UHD build
       file:
         path: "{{ uhd_src_dir }}"
@@ -83,7 +83,7 @@
       debug:
         msg: "UHD installed: {{ uhd_verify.stdout }}"
 
-    # --- Library cache & PATH ---
+    # --- Ensure library cache & environment variables ---
     - name: Update library cache
       shell: ldconfig
       args:
@@ -110,5 +110,4 @@
       args:
         executable: /bin/bash
 
-  when:
-    - uhd_check.stdout | default('none') | trim != uhd_version
+  when: uhd_check.stdout | default('none') | trim != uhd_version
