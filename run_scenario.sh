@@ -30,7 +30,7 @@ run_cmd() {
 }
 
 usage() {
-    echo "Usage: $0 [-d|-i|-m] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
+    echo "Usage: $0 [-d|-i|-m|-p] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
     echo ""
     echo "-d                       Deploy the default iperf scenario"
     echo "-i                       Deploy the interference scenario"
