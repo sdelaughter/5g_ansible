@@ -4,18 +4,8 @@
   delegate_to: faraday.inria.fr
   when: rru not in ['benetel1', 'benetel2']
 
-- name: Test ssh connectivity faraday -> sopnode-w1
-  shell: "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=5 sopnode-w1 echo OK"
-  delegate_to: faraday.inria.fr
-  register: ssh_test
-
-- name: Show result
-  debug:
-    var: ssh_test.stdout
-
-
 - name: "Prepare {{ rru }} RRU (switch on, load conf, reboot)"
-  shell: "ssh -A -o StrictHostKeyChecking=no sopnode-w1 /usr/local/bin/prepare-{{ rru }}-for-{{ ran | lower }}.sh"
+  shell: "/usr/local/bin/prepare-{{ rru }}-for-{{ ran | lower }}.sh"
   delegate_to: faraday.inria.fr
   when: rru in ['benetel1', 'benetel2'] and ran in ['srsRAN', 'oai']
   register: prepare_rru_output
