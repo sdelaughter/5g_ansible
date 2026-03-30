@@ -8,6 +8,10 @@ IPERF_PLAYBOOK="playbooks/run_scenario_iperf.yml"
 SETUP_IPERF_PLAYBOOK="playbooks/setup_iperf.yml"
 INTERFERENCE_PLAYBOOK="playbooks/run_scenario_interference.yml"
 SETUP_INTERFERENCE_PLAYBOOK="playbooks/setup_interference.yml"
+MULTI_UE_PLAYBOOK="playbooks/run_scenario_iperf_multi.yml"
+SETUP_MULTI_UE_PLAYBOOK="playbooks/setup_iperf.yml" # setup is the same as normal
+PING_PLAYBOOK="playbooks/run_scenario_ping.yml"
+SETUP_PING_PLAYBOOK="playbooks/setup_ping.yml"
 
 RUN_SETUP=true
 SETUP_PLAYBOOK="${SETUP_IPERF_PLAYBOOK}"
@@ -26,10 +30,12 @@ run_cmd() {
 }
 
 usage() {
-    echo "Usage: $0 [-d|-i] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
+    echo "Usage: $0 [-d|-i|-m] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
     echo ""
     echo "-d                       Deploy the default iperf scenario"
     echo "-i                       Deploy the interference scenario"
+    echo "-m                       Deploy the multi-UE iperf scenario"
+    echo "-p                       Deploy the multi-UE ping scenario"
     echo "--no-setup               Do not run the setup, --use this option if R2lab devices already up and running"
     echo "-e <vars>                Extra ansible vars, e.g., -e \"nb_ues=5\" -e \"duration=20\""
     echo "--inventory <name>       Use ./inventory/<name>/hosts.ini inventory instead of the default one"
@@ -68,6 +74,16 @@ while [[ $# -gt 0 ]]; do
         -i)
             SETUP_PLAYBOOK="${SETUP_INTERFERENCE_PLAYBOOK}"
             TARGET_PLAYBOOK="${INTERFERENCE_PLAYBOOK}"
+            shift
+            ;;
+        -m)
+            SETUP_PLAYBOOK="${SETUP_MULTI_UE_PLAYBOOK}"
+            TARGET_PLAYBOOK="${MULTI_UE_PLAYBOOK}"
+            shift
+            ;;
+        -p)
+            SETUP_PLAYBOOK="${SETUP_PING_PLAYBOOK}"
+            TARGET_PLAYBOOK="${PING_PLAYBOOK}"
             shift
             ;;
         -h|--help)
