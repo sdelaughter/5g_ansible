@@ -518,13 +518,13 @@ if [[ "$run_scenario" == true && "$scenario" == "Iperf R2lab scenario with inter
     echo "Setting MODE to TDD for interference test"
     echo ""
     export MODE="TDD"
-    # Ask user for interference parameters and export them: FREQ, GAIN, NOISE_BANDWIDTH (defaults are 3411.22M, 110, 20M)
+    # Ask user for interference parameters and export them: FREQ, GAIN, NOISE_BANDWIDTH (defaults are 3411.22M, 110, 15M)
     read -rp "Enter interference frequency [default: 3411.22M]: " freq_input
     FREQ="${freq_input:-3411.22M}"
     read -rp "Enter interference gain in dB [default: 110]: " gain_input
     GAIN="${gain_input:-110}"
-    read -rp "Enter noise bandwidth in Hz [default: 20M]: " bw_input
-    NOISE_BANDWIDTH="${bw_input:-20M}"
+    read -rp "Enter noise bandwidth in Hz [default: 15M]: " bw_input
+    NOISE_BANDWIDTH="${bw_input:-15M}"
     export FREQ GAIN NOISE_BANDWIDTH
   else
     echo "Setting MODE to FDD for interference test"
