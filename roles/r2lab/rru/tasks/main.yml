@@ -2,6 +2,12 @@
 - name: Power ON "{{ rru }}" PDU outlet
   shell: rhubarbe pdu on "{{ rru }}"
   delegate_to: faraday.inria.fr
+  when rru not in ['benetel1', 'benetel2']
+
+- name: Prepare {{ rru }} RRU (switch on, load conf, reboot)
+  shell: prepare-{{ rru }}-for-{{ ran | lower }}.sh
+  delegate_to: faraday.inria.fr
+  when: rru in ['benetel1', 'benetel2'] and ran in ['srsRAN', 'oai']
 
 - name: Verify PDU status
   shell: rhubarbe pdu status "{{ rru }}"
