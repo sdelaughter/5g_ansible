@@ -55,6 +55,12 @@
     loop_var: current_ue
   delegate_to: localhost
 
+- name: Wipe remote log directories
+  ansible.builtin.file:
+    path: "/tmp/ping_logs"
+    state: absent
+  loop: "{{ valid_ue_list }}"
+
 - name: Copy inventory file
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../inventory/default/hosts.ini"
