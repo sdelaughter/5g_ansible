@@ -1,0 +1,196 @@
+---
+- name: Define variables
+  set_fact:
+    tcp_bandwidth: "0" # 0 == unlimited
+    udp_bandwidth: "100M"
+
+- name: Define iperf_scenarios
+  set_fact:
+    iperf_scenarios:
+      - {protocol: "tcp", direction: "up", extra_args: "-b {{ tcp_bandwidth }}"}
+      - {protocol: "tcp", direction: "down", extra_args: "-b {{ tcp_bandwidth }} -R"}
+      - {protocol: "udp", direction: "up", extra_args: "-u -b {{ udp_bandwidth }}"}
+      - {protocol: "udp", direction: "down", extra_args: "-u -b {{ udp_bandwidth }} -R"}
+
+- name: Set defaults
+  set_fact:
+    duration: "{{ iperf_duration | default(30) }}"
+    sleep: "{{ iperf_sleep | default(5) }}"
+    target_server: "{{ hostvars[groups['core_node'][0]].ip }}"
+    core_ns: "{{ core }}"
+    valid_ue_list: []
+    ue_name: "{{ ue_name_map[ran] }}"
+    tun_name: "{{ tun_name_map[ran] }}"
+  vars:
+    ue_name_map:
+      oai: oai-nr-ue
+      srsRAN: srsran-ue-srsue-ue
+      ueransim: ueransim-ue
+    tun_name_map:
+      oai: oaitun_ue1
+      srsRAN: tun_srsue
+      ueransim: uesimtun0
+
+- name: Define timestamp
+  set_fact:
+    timestamp: "{{ '%Y-%m-%d-%H-%M-%S' | strftime(ansible_date_time.epoch) }}"
+
+- name: Define results path
+  set_fact:
+    results_dir: "{{ playbook_dir }}/../results/{{ timestamp }}"
+
+- name: Get all pods in namespace
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ core_ns }}"
+  register: all_pods
+
+- name: Filter UE pods by name
+  set_fact:
+    ue_resources: "{{ all_pods.resources | selectattr('metadata.name', 'search', '^' + ue_name) | list }}"
+
+- name: Force Install iperf3 (YUM then APT)
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ item.metadata.name }} -- bash -c "
+    if ! command -v iperf3 &> /dev/null; then
+      if command -v yum &> /dev/null; then
+        yum install -y -q iperf3 iproute
+      elif command -v apt-get &> /dev/null; then
+        apt-get update -qq && apt-get install -y -qq iperf3 iproute2
+      else
+        echo 'No package manager found' && exit 1
+      fi
+    fi
+    command -v iperf3"
+  loop: "{{ ue_resources }}"
+  loop_control:
+    label: "Installing iperf3 on {{ item.metadata.name }}"
+  register: install_check
+  failed_when: install_check.rc != 0
+
+# following solve issues with iperf
+- name: Configure UE MTU to 1350
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ item.metadata.name }} -- \
+    ip link set dev {{ tun_name }} mtu 1350
+  loop: "{{ ue_resources }}"
+  loop_control:
+    label: "Setting MTU 1350 on {{ item.metadata.name }}"
+  register: mtu_result
+  failed_when: false
+
+- name: Get tun IP
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ item.metadata.name }} -- \
+    /bin/bash -c "ip -4 addr show {{ tun_name }} | awk '/inet / {print \$2}' | cut -d/ -f1"
+  loop: "{{ ue_resources }}"
+  loop_control:
+    label: "Getting IP for {{ item.metadata.name }}"
+  register: ue_ip_results
+  changed_when: false
+
+- name: Init and Classify valid UEs
+  set_fact:
+    valid_ue_list: "{{ valid_ue_list + [ {'pod': item.item.metadata.name, 'ip': item.stdout | trim} ] }}"
+  loop: "{{ ue_ip_results.results }}"
+  # On change la condition pour être plus tolérant mais strict sur le contenu
+  when: 
+    - item.stdout is defined
+    - item.stdout | trim | length > 0
+    - item.stdout | trim != ""
+
+- name: Init and Classify valid UEs
+  set_fact:
+    valid_ue_list: "{{ valid_ue_list + [ {'pod': item.item.metadata.name, 'ip': item.stdout | trim} ] }}"
+  loop: "{{ ue_ip_results.results }}"
+  loop_control:
+    label: "{{ item.item.metadata.name }} -> {{ item.stdout | trim }}"
+  when:
+    - item.stdout is defined
+    - item.stdout | trim is search('^[0-9.]+$')
+
+- name: Add ip route to target_server
+  shell: |
+    kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
+    ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ tun_name }}
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    label: "Setting route to iperf server on {{ item.pod }}"
+  register: route_result
+  failed_when: false
+
+- name: Create local log directories
+  ansible.builtin.file:
+    path: "{{ results_dir }}/ue={{ current_ue.pod }}/"
+    state: directory
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+  delegate_to: localhost
+
+- name: Execute iperf tests for all connected UEs individually
+  include_tasks: iperf_execution.yml
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+    index_var: ue_index
+  vars:
+    ue_count: 1
+    ue_ip: "{{ ue_ips[current_ue.ip] }}"
+    iperf_port: "{{ 5201 + ue_index }}"
+    # duration: "{{ iperf_duration | default(30) }}"
+    ignore_task_errors: true
+    # sleep: 2
+
+- name: Execute iperf tests for all connected UEs simultaneously
+  include_tasks: iperf_execution_async.yml
+  loop: "{{ iperf_scenarios }}"
+  loop_control:
+    loop_var: scenario
+  vars:
+    ue_count: "{{ valid_ue_list|length }}"
+    direction: "{{ scenario.direction }}"
+    protocol: "{{ scenario.protocol }}"
+    extra_args: "{{ scenario.extra_args }}"
+    # duration: "{{ iperf_duration | default(30) }}"
+    ignore_task_errors: true
+    # sleep: 2
+
+- name: Archive logs
+  community.general.archive:
+    path: /tmp/iperf_logs/
+    dest: /tmp/iperf_logs.tar.gz
+    format: gz
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+  delegate_to: "{{ current_ue.pod }}"
+
+- name: Fetch archived logs
+  ansible.builtin.fetch:
+    src: /tmp/iperf_logs.tar.gz
+    dest: "{{ results_dir }}/{{ current_ue.pod }}_logs.tar.gz"
+    flat: yes
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+  delegate_to: "{{ current_ue.pod }}"
+
+- name: Extract logs locally
+  ansible.builtin.unarchive:
+    src: "{{ results_dir }}/{{ current_ue.pod }}_logs.tar.gz"
+    dest: "{{ results_dir }}/ue={{ current_ue.pod }}/"
+    remote_src: false
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+  delegate_to: localhost
+
+- name: Remove archive after extraction
+  ansible.builtin.file:
+    path: "{{ results_dir }}/{{ current_ue.pod }}_logs.tar.gz"
+    state: absent
+  loop: "{{ valid_ue_list }}"
+  loop_control:
+    loop_var: current_ue
+  delegate_to: localhost

@@ -1,0 +1,17 @@
+---
+# Run Uplink test on UE
+- name: Run iperf tests from {{ current_ue.pod }} via faraday
+  shell: >
+    kubectl exec -n {{ core_ns }} {{ current_ue.pod }} --
+    "mkdir -p {{ log_dir }} && iperf3 -p {{ iperf_port }} -B {{ current_ue.ip }} -c {{ target_server }} -t {{ duration }} -J --get-server-output {{ extra_args }} > {{ log_dir }}/iperf.json && sleep {{ sleep }}"
+  when: current_ue.ip is defined and current_ue.ip != ""
+  loop: "{{ iperf_scenarios }}"
+  loop_control:
+    loop_var: scenario
+  vars:
+    direction: "{{ scenario.direction }}"
+    protocol: "{{ scenario.protocol }}"
+    extra_args: "{{ scenario.extra_args }}"
+    log_dir: "/tmp/iperf_logs/protocol={{ protocol }}/ue_count=1/direction={{ direction }}"
+  ignore_errors: "{{ ignore_task_errors | default(false) }}"
+  failed_when: false
