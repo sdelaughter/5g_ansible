@@ -78,20 +78,6 @@
       when: item.rc != 0
       loop: "{{ job_status.results }}"
 
-############################################################################
-# Move this block where you want to restart with start-at-task=RESTART_HERE"
-#
-- hosts: localhost,core_node,ran_node
-  gather_facts: false
-  tasks:
-    - name: RESTART_HERE
-      ansible.builtin.meta: noop
-
-    - import_tasks: ../tasks/reload_booleans.yml
-#
-############################################################################
-
-
 # The following task requires all nodes be ssh-reachable
 # so it can't be the first task of the playbook
 - hosts: localhost,sopnodes
