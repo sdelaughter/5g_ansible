@@ -18,7 +18,7 @@
   failed_when: false
 
 - name: Deploy srsRAN gNB (only when not rfsim)
-  when: rru != 'rfsim'
+  when: rru in ['n300', 'n320']
   block:
 
     - name: Set initial retry facts
@@ -45,7 +45,7 @@
       when: gnb_startup_success
 
 - name: Deploy srsRAN gNB using Helm
-  when: rru == 'rfsim'
+  when: not rru in ['n300', 'n320']
   kubernetes.core.helm:
     name: srsran-gnb
     chart_ref: "{{ [repo_dest_abs, 'charts', 'srsran-gnb'] | path_join }}"
