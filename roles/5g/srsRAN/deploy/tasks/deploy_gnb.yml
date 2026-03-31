@@ -44,6 +44,38 @@
         msg: "srsRAN gNB is running successfully!"
       when: gnb_startup_success
 
+- name: Fix SR-IOV Network Node Policy deviceType
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: sriovnetwork.openshift.io/v1
+      kind: SriovNetworkNodePolicy
+      metadata:
+        name: ruvfiou
+        namespace: sriov-network-operator
+      spec:
+        deviceType: netdevice
+        isRdma: false
+        linkType: eth
+        mtu: 9216
+        nicSelector:
+          pfNames:
+            - ens15f1np1#2-3
+          rootDevices:
+            - 0000:3a:00.1
+        nodeSelector:
+          feature.node.kubernetes.io/network-sriov.capable: "true"
+        numVfs: 4
+        priority: 11
+        resourceName: ruvfiou
+  register: sriov_patch
+  when: rru in ['benetel1', 'benetel2']
+  
+- name: Wait for SR-IOV VF reconfiguration
+  pause:
+    seconds: 120
+  when: sriov_patch.changed
+
 - name: Deploy srsRAN gNB using Helm
   when: not rru in ['n300', 'n320']
   kubernetes.core.helm:
