@@ -98,12 +98,25 @@
     - role: setup/k8s/k8s_env
     - role: setup/optimization/cpu
 
+############################################################################
+# Move this block where you want to restart with start-at-task=RESTART_HERE"
+#
+- hosts: localhost,core_node,ran_node
+  gather_facts: false
+  tasks:
+    - name: RESTART_HERE
+      ansible.builtin.meta: noop
+
+    - import_tasks: ../tasks/reload_booleans.yml
+#
+############################################################################
+
 # not for monitor_node
 - name: Common sopnodes setup
   hosts: core_node,ran_node,monitor_node
   roles:
     - role: setup/ovs
-      when: not fhi72
+      when: not (fhi72 and ran == 'oai')
 
 - name: PTP setup on ran_node
   hosts: ran_node
@@ -155,19 +168,6 @@
       vars:
         target_node: "{{ ran_node_name }}"
       when: core_node_name != ran_node_name and not fhi72
-
-############################################################################
-# Move this block where you want to restart with start-at-task=RESTART_HERE"
-#
-- hosts: localhost,core_node,ran_node
-  gather_facts: false
-  tasks:
-    - name: RESTART_HERE
-      ansible.builtin.meta: noop
-
-    - import_tasks: ../tasks/reload_booleans.yml
-#
-############################################################################
 
 - name: Install Multus / CNAO
   hosts: core_node
