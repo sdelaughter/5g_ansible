@@ -20,7 +20,7 @@
           } ] }
   when:
     - core == 'free5gc'
-    - core_node_name != ran_node_name
+    - core_node_name == ran_node_name
 
 - name: Launch OAI gNB pod
   ansible.builtin.command: "{{ demo_oai_script }} start-gnb"
