@@ -162,7 +162,7 @@ collect_user_inputs() {
     echo "2) Open5Gs"
     echo "3) Free5gc"
     read -rp "Enter choice [1-3]: " core_choice
-    if [[ -z "$core_choice" ]]; then
+    if [[ -z "${core_choice}" ]]; then
 	core=${DEFAULT_CORE}
     else
 	case "${core_choice}" in
@@ -176,6 +176,9 @@ collect_user_inputs() {
     # Select Core Node
     # Make sopnode-f2 the default if the user just presses enter
     echo ""
+    if [[ "${core_choice}" == 3 ]]; then
+	echo "Warning: with free5gc core, deploy core and ran on 2 different nodes"
+    fi
     echo "Select the node to deploy CORE ($core) on (default: ${DEFAULT_CORE_NODE}):"
     echo "1) sopnode-f1"
     echo "2) sopnode-f2"
@@ -220,25 +223,30 @@ collect_user_inputs() {
 	fi
     fi
 
-    # Select RAN Node
-    # Make sopnode-f3 the default if the user just presses enter
-    echo ""
-    echo "Select the node to deploy RAN ($ran) on (default: ${DEFAULT_RAN_NODE}):"
-    echo "1) sopnode-f1"
-    echo "2) sopnode-f2"
-    echo "3) sopnode-f3"
-    echo "4) sopnode-w3"
-    read -rp "Enter choice [1-4]: " ran_node_choice
-    if [[ -z "${ran_node_choice}" ]]; then
-	ran_node=${DEFAULT_RAN_NODE}
-    else
-	case "${ran_node_choice}" in
-	    1) ran_node="sopnode-f1" ;;
-	    2) ran_node="sopnode-f2" ;;
-	    3) ran_node="sopnode-f3" ;;
-	    4) ran_node="sopnode-w3" ;;
-	    *) echo "❌ Invalid RAN node"; exit 1 ;;
-	esac
+    if [[ "$core" != "free5gc" ]]; then
+	# Select RAN Node
+	# Make sopnode-f3 the default if the user just presses enter
+	echo ""
+	echo "Select the node to deploy RAN ($ran) on (default: ${DEFAULT_RAN_NODE}):"
+	echo "1) sopnode-f1"
+	echo "2) sopnode-f2"
+	echo "3) sopnode-f3"
+	echo "4) sopnode-w3"
+	read -rp "Enter choice [1-4]: " ran_node_choice
+	if [[ -z "${ran_node_choice}" ]]; then
+	    ran_node=${DEFAULT_RAN_NODE}
+	else
+	    case "${ran_node_choice}" in
+		1) ran_node="sopnode-f1" ;;
+		2) ran_node="sopnode-f2" ;;
+		3) ran_node="sopnode-f3" ;;
+		4) ran_node="sopnode-w3" ;;
+		*) echo "❌ Invalid RAN node"; exit 1 ;;
+	    esac
+	fi
+    else	
+	echo "Use ${core_node} for both $core and $ran."
+	ran_node="${core_node}"
     fi
 
     # Select Monitoring Node (only if not OAI core with UERANSIM RAN and if user wants it)
