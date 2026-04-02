@@ -1,2 +1,10 @@
 ---
-fit_node: fit02
+fit_index: >-
+  {{
+    1 if (
+      hostvars.get(faraday_host | default(''), {}).get('interference_usrp') == 'fit'
+      and groups.get('fit_nodes', []) | length > 1
+    ) else 0
+  }}
+
+fit_node: "{{ groups['fit_nodes'][fit_index] }}"
