@@ -51,8 +51,7 @@
   when: rru in ['benetel1', 'benetel2']
   block:
     - name: Detect Benetel E810 PCI address
-      shell: |
-        lspci -d 8086:1453 | awk '{print $1}' | head -1
+      shell: lspci | grep -i "E810-C" | awk '{print $1}' | head -1
       register: benetel_pci_result
       changed_when: false
 
