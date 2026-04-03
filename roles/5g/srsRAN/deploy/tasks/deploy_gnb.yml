@@ -2,7 +2,7 @@
 - name: Force Ansible to use venv Python
   ansible.builtin.set_fact:
     ansible_python_interpreter: /opt/ansible-venv/bin/python
-    
+
 - name: Load common variables
   include_vars:
     file: "../../common/defaults/main.yml"
@@ -47,37 +47,61 @@
         msg: "srsRAN gNB is running successfully!"
       when: gnb_startup_success
 
-- name: Fix SR-IOV Network Node Policy deviceType
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: sriovnetwork.openshift.io/v1
-      kind: SriovNetworkNodePolicy
-      metadata:
-        name: ruvfiou
-        namespace: sriov-network-operator
-      spec:
-        deviceType: netdevice
-        isRdma: false
-        linkType: eth
-        mtu: 9216
-        nicSelector:
-          pfNames:
-            - ens15f1np1#2-3
-          rootDevices:
-            - 0000:3a:00.1
-        nodeSelector:
-          feature.node.kubernetes.io/network-sriov.capable: "true"
-        numVfs: 4
-        priority: 11
-        resourceName: ruvfiou
-  register: sriov_patch
+- name: Configure SR-IOV for Benetel with DPDK
   when: rru in ['benetel1', 'benetel2']
-  
-- name: Wait for SR-IOV VF reconfiguration
-  pause:
-    seconds: 120
-  when: sriov_patch.changed
+  block:
+    - name: Detect Benetel E810 PCI address
+      shell: |
+        lspci -d 8086:1453 | awk '{print $1}' | head -1
+      register: benetel_pci_result
+      changed_when: false
+
+    - name: Store detected PCI address
+      ansible.builtin.set_fact:
+        benetel_pci_addr: "0000:{{ benetel_pci_result.stdout }}"
+      when: benetel_pci_result.stdout != ""
+
+    - name: Fail if Benetel not detected
+      ansible.builtin.fail:
+        msg: "Benetel E810 adapter not found"
+      when: benetel_pci_result.stdout == ""
+
+    - name: Extract root device address
+      ansible.builtin.set_fact:
+        benetel_root_pci: "{{ benetel_pci_addr | regex_replace('^0000:([0-9a-f]{2}):([0-9a-f]{2})\\.[0-9a-f]$', '0000:\\1:00.1') }}"
+
+    - name: Create SR-IOV policy with vfio-pci for DPDK
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: sriovnetwork.openshift.io/v1
+          kind: SriovNetworkNodePolicy
+          metadata:
+            name: benetel-dpdk-policy
+            namespace: sriov-network-operator
+          spec:
+            deviceType: vfio-pci
+            isRdma: false
+            linkType: eth
+            mtu: 9216
+            nicSelector:
+              rootDevices:
+                - "{{ benetel_root_pci }}"
+            nodeSelector:
+              feature.node.kubernetes.io/network-sriov.capable: "true"
+            numVfs: 4
+            priority: 99
+            resourceName: benetel_ru
+
+    - name: Update values file with discovered PCI address
+      ansible.builtin.shell: >
+        {{ yq_bin_path }} eval -i '
+          .sriov.pciAddress = "{{ benetel_pci_addr }}"
+        ' "{{ values_file }}"
+
+    - name: Wait for SR-IOV VF creation
+      pause:
+        seconds: 60
 
 - name: Deploy srsRAN gNB using Helm
   when: not rru in ['n300', 'n320']
@@ -88,11 +112,10 @@
     values_files:
       - "{{ values_file }}"
     state: present
-    wait: False # True # False for debug
+    wait: False
     atomic: True
     timeout: 180s
 
 - name: Reset ansible_python_interpreter to system python3
   ansible.builtin.set_fact:
     ansible_python_interpreter: /usr/bin/python3
-
