@@ -68,7 +68,7 @@
 
     - name: Extract root device address
       ansible.builtin.set_fact:
-        benetel_root_pci: "{{ benetel_pci_addr | regex_replace('^0000:([0-9a-f]{2}):([0-9a-f]{2})\\.[0-9a-f]$', '0000:\\1:00.1') }}"
+        benetel_root_pci: "{{ benetel_pci_addr | regex_replace('\\.[0-9a-f]$', '.1') }}"
 
     - name: Create SR-IOV policy with vfio-pci for DPDK
       kubernetes.core.k8s:
