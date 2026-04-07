@@ -15,7 +15,7 @@ ping -c 1 -W 2 root@"${RU_IP}" >/dev/null 2>&1 || { echo "RU ${RU_IP} is unreach
 scp -O "$CONFIG" "${RU_IP}":/etc/ru_config.cfg
 
 # Reboot the RU
-ssh "${RU_IP}" /sbin/reboot
+ssh root@"${RU_IP}" /sbin/reboot
 
 # sleep 60s
 sleep 60

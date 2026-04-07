@@ -15,7 +15,7 @@ ping -c 1 -W 2 "${RU_IP}" >/dev/null 2>&1 || { echo "RU ${RU_IP} is unreachable,
 scp -O "$CONFIG" root@"${RU_IP}":/etc/ru_config.cfg
 
 # Reboot the RU
-ssh "${RU_IP}" /sbin/reboot
+ssh root@"${RU_IP}" /sbin/reboot
 
 # sleep 60s
 sleep 60
