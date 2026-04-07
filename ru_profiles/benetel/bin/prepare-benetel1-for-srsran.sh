@@ -12,7 +12,7 @@ RU_IP="192.168.233.101"
 ping -c 1 -W 2 "${RU_IP}" >/dev/null 2>&1 || { echo "RU ${RU_IP} is unreachable, did you switch it on before ?"; exit 1; }
 
 # Copy the target benetel config file to the RU
-scp -O "$CONFIG" "${RU_IP}":/etc/ru_config.cfg
+scp -O "$CONFIG" root@"${RU_IP}":/etc/ru_config.cfg
 
 # Reboot the RU
 ssh "${RU_IP}" /sbin/reboot
