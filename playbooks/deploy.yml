@@ -314,7 +314,7 @@
       include_role:
         name: monarch/monitoring
       vars:
-        set_gnb_monitoring: true
+        set_gnb_monitoring: false
       when: monitoring_enabled and ran == 'oai'
 
     - name: Launch monitoring for srsRAN
