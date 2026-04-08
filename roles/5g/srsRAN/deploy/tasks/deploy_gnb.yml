@@ -64,21 +64,28 @@
       register: cplane_policy
       failed_when: cplane_policy.resources | length == 0
 
-    - name: "Update Helm values to use Ansible-created resources"
+    - name: Wait for SR-IOV VF creation
+      pause:
+        seconds: 60
+
+    - name: "Detect first available VF from ruvfioc policy"
+      shell: |
+        lspci | grep "Virtual Function" | grep "3a:09" | head -1 | awk '{print $1}'
+      register: vf_detect
+      changed_when: false
+      failed_when: vf_detect.stdout == ""
+
+    - name: "Update Helm values to use Ansible-created resources and detected VF"
       ansible.builtin.lineinfile:
         path: "{{ values_file }}"
         regexp: '^\s*sriovResourceName:'
         line: '  sriovResourceName: "{{ ran_vars.sriovResourceNameCplane }}"'
 
-    - name: "Ensure pciAddress is empty for dynamic detection"
+    - name: "Set pciAddress with detected VF"
       ansible.builtin.lineinfile:
         path: "{{ values_file }}"
         regexp: '^\s*pciAddress:'
-        line: '  pciAddress: ""'
-
-    - name: Wait for SR-IOV VF creation
-      pause:
-        seconds: 60
+        line: '  pciAddress: "0000:{{ vf_detect.stdout }}"'
 
 - name: Set CPU scaling governor to performance on ran node
   when: rru in ['benetel1', 'benetel2']
