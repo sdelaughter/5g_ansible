@@ -40,7 +40,7 @@ run_cmd() {
 
       if [[ $status -ne 0 ]]; then
         echo -e "\e[31m❌ Command failed with exit code $status:\e[0m $*"
-        exit $status  # optional
+#        exit $status  # optional
       fi
 
       return $status
