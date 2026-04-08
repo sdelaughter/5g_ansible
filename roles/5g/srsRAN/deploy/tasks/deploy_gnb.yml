@@ -68,24 +68,36 @@
       pause:
         seconds: 60
 
-    - name: "Detect first available VF from ruvfioc policy"
+    - name: "Detect FIRST VF (VF 0) from ruvfioc policy"
       shell: |
         lspci | grep "Virtual Function" | grep "3a:09" | head -1 | awk '{print $1}'
       register: vf_detect
       changed_when: false
       failed_when: vf_detect.stdout == ""
 
-    - name: "Update Helm values to use Ansible-created resources and detected VF"
+    - name: "Update Helm: sriovResourceName to use C-plane resource"
       ansible.builtin.lineinfile:
         path: "{{ values_file }}"
         regexp: '^\s*sriovResourceName:'
         line: '  sriovResourceName: "{{ ran_vars.sriovResourceNameCplane }}"'
 
-    - name: "Set pciAddress with detected VF"
+    - name: "Update Helm: pciAddress with detected VF"
       ansible.builtin.lineinfile:
         path: "{{ values_file }}"
         regexp: '^\s*pciAddress:'
         line: '  pciAddress: "0000:{{ vf_detect.stdout }}"'
+
+    - name: "Update srsRAN config: eal_args with detected VF"
+      ansible.builtin.lineinfile:
+        path: "{{ values_file }}"
+        regexp: 'eal_args:.*-a 0000:3a:09\.[0-9]'
+        line: '    eal_args: "-l 6,7,8,9,10,11 --main-lcore 6 --force-max-simd-bitwidth 64 -a 0000:{{ vf_detect.stdout }}"'
+
+    - name: "Update srsRAN config: network_interface with detected VF"
+      ansible.builtin.lineinfile:
+        path: "{{ values_file }}"
+        regexp: 'network_interface:.*0000:3a:09\.[0-9]'
+        line: '        network_interface: "0000:{{ vf_detect.stdout }}"'
 
 - name: Set CPU scaling governor to performance on ran node
   when: rru in ['benetel1', 'benetel2']
