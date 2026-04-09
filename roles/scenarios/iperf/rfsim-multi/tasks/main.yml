@@ -254,6 +254,7 @@
   loop_control:
     loop_var: current_ue
   delegate_to: localhost
+  become: yes
 
 # ============================================================
 # Individual UE iPerf
