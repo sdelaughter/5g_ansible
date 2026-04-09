@@ -2,7 +2,7 @@
 - name: Define variables
   set_fact:
     tcp_bandwidth: "0" # 0 == unlimited
-    udp_bandwidth: "100M"
+    udp_bandwidth: "50M"
 
 - name: Define iperf_scenarios
   set_fact:
@@ -11,6 +11,8 @@
       - {protocol: "tcp", direction: "down", extra_args: "-b {{ tcp_bandwidth }} -R"}
       - {protocol: "udp", direction: "up", extra_args: "-u -b {{ udp_bandwidth }}"}
       - {protocol: "udp", direction: "down", extra_args: "-u -b {{ udp_bandwidth }} -R"}
+      - {protocol: "sctp", direction: "up", extra_args: "--sctp -b {{ tcp_bandwidth }}"}
+      - {protocol: "sctp", direction: "down", extra_args: "--sctp -b {{ tcp_bandwidth }} -R"}
 
 - name: Set defaults
   set_fact:
