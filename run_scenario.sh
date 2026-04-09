@@ -31,10 +31,11 @@ run_cmd() {
 }
 
 usage() {
-    echo "Usage: $0 [-d|-i] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
+    echo "Usage: $0 [-d|-i|-m] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
     echo ""
     echo "-d                       Deploy the default iperf scenario"
     echo "-i                       Deploy the interference scenario"
+    echo "-m                       Deploy the multi-UE iperf scenario"
     echo "--no-setup               Do not run the setup, --use this option if R2lab devices already up and running"
     echo "-e <vars>                Extra ansible vars, e.g., -e \"nb_ues=5\" -e \"duration=20\""
     echo "--inventory <name>       Use ./inventory/<name>/hosts.ini inventory instead of the default one"
@@ -73,6 +74,11 @@ while [[ $# -gt 0 ]]; do
         -i)
             SETUP_PLAYBOOK="${SETUP_INTERFERENCE_PLAYBOOK}"
             TARGET_PLAYBOOK="${INTERFERENCE_PLAYBOOK}"
+            shift
+            ;;
+        -m)
+            SETUP_PLAYBOOK="${SETUP_MULTI_UE_PLAYBOOK}"
+            TARGET_PLAYBOOK="${MULTI_UE_PLAYBOOK}"
             shift
             ;;
         -h|--help)
