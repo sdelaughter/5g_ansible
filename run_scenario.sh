@@ -8,6 +8,8 @@ IPERF_PLAYBOOK="playbooks/run_scenario_iperf.yml"
 SETUP_IPERF_PLAYBOOK="playbooks/setup_iperf.yml"
 INTERFERENCE_PLAYBOOK="playbooks/run_scenario_interference.yml"
 SETUP_INTERFERENCE_PLAYBOOK="playbooks/setup_interference.yml"
+MULTI_UE_PLAYBOOK="playbooks/run_scenario_iperf_multi.yml"
+SETUP_MULTI_UE_PLAYBOOK="playbooks/setup_iperf.yml" # setup is the same as normal
 
 RUN_SETUP=true
 SETUP_PLAYBOOK="${SETUP_IPERF_PLAYBOOK}"
