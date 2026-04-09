@@ -142,11 +142,15 @@
                   type: Directory
 
     - name: Wait for governor pod to complete
-      shell: >
-        kubectl wait pod/set-governor -n {{ ran_ns }}
-        --for=condition=Succeeded --timeout=60s
-      changed_when: false
-      failed_when: false
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        name: set-governor
+        namespace: "{{ ran_ns }}"
+      register: governor_pod
+      until: governor_pod.resources[0].status.phase == "Succeeded"
+      retries: 20
+      delay: 3
 
     - name: Read governor from pod logs
       shell: kubectl logs -n {{ ran_ns }} set-governor
