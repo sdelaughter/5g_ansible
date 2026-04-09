@@ -87,7 +87,7 @@
   failed_when: install_check.rc != 0
 
 # ============================================================
-# Build valid_ues - free5gc+srsRAN: single pod, numbered tuns
+# Build valid_ue_list - free5gc+srsRAN: single pod, numbered tuns
 # ============================================================
 
 - name: Get tun IPs from single UE pod (free5gc+srsRAN)
@@ -101,9 +101,9 @@
   changed_when: false
   when: free5gc_srsran | bool
 
-- name: Build valid_ues (free5gc+srsRAN)
+- name: Build valid_ue_list (free5gc+srsRAN)
   set_fact:
-    valid_ues: "{{ valid_ues + [{'pod': ue_resources[0].metadata.name,
+    valid_ue_list: "{{ valid_ue_list + [{'pod': ue_resources[0].metadata.name,
                                  'ip': item.split()[1] | regex_replace('/.*', ''),
                                  'tun': item.split()[0]}] }}"
   loop: "{{ free5gc_tun_raw.stdout_lines | default([]) }}"
@@ -114,7 +114,7 @@
     - item | trim != ''
 
 # ============================================================
-# Build valid_ues - open5gs+srsRAN: single pod, numbered tuns
+# Build valid_ue_list - open5gs+srsRAN: single pod, numbered tuns
 # ============================================================
 
 - name: Get tun IPs from single UE pod (open5gs+srsRAN)
@@ -128,9 +128,9 @@
   changed_when: false
   when: open5gs_srsran | bool
 
-- name: Build valid_ues (open5gs+srsRAN)
+- name: Build valid_ue_list (open5gs+srsRAN)
   set_fact:
-    valid_ues: "{{ valid_ues + [{'pod': ue_resources[0].metadata.name,
+    valid_ue_list: "{{ valid_ue_list + [{'pod': ue_resources[0].metadata.name,
                                  'ip': item.split()[1] | regex_replace('/.*', ''),
                                  'tun': item.split()[0]}] }}"
   loop: "{{ open5gs_tun_raw.stdout_lines | default([]) }}"
@@ -141,7 +141,7 @@
     - item | trim != ''
 
 # ============================================================
-# Build valid_ues - others: one pod per UE
+# Build valid_ue_list - others: one pod per UE
 # ============================================================
 
 - name: Get tun IP per pod (others)
@@ -155,9 +155,9 @@
   changed_when: false
   when: not (single_pod_srsran | bool)
 
-- name: Build valid_ues (others)
+- name: Build valid_ue_list (others)
   set_fact:
-    valid_ues: "{{ valid_ues + [{'pod': item.item.metadata.name,
+    valid_ue_list: "{{ valid_ue_list + [{'pod': item.item.metadata.name,
                                  'ip': item.stdout | trim,
                                  'tun': tun_name}] }}"
   loop: "{{ ue_ip_results.results | default([]) }}"
@@ -182,7 +182,7 @@
   shell: |
     kubectl exec -n {{ core_ns }} {{ item.pod }} -- \
     ip route add {{ target_server }} via {{ item.ip.split('.')[:2] | join('.') }}.1.1 dev {{ item.tun }} 2>/dev/null || true
-  loop: "{{ valid_ues }}"
+  loop: "{{ valid_ue_list }}"
   loop_control:
     label: "Setting route on {{ item.pod }} via {{ item.tun }}"
   failed_when: false
@@ -235,7 +235,7 @@
     kubectl exec -n {{ core_ns }} {{ item.pod }} -- bash -c "
     ip rule add from {{ item.ip }} table {{ 100 + idx + 1 }} 2>/dev/null || true
     ip route add {{ target_server }} dev {{ item.tun }} table {{ 100 + idx + 1 }} 2>/dev/null || true"
-  loop: "{{ valid_ues }}"
+  loop: "{{ valid_ue_list }}"
   loop_control:
     index_var: idx
     label: "ip rule from {{ item.ip }} -> {{ item.tun }} (table {{ 100 + idx + 1 }})"
