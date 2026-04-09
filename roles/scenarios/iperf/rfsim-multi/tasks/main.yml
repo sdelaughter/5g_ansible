@@ -248,13 +248,13 @@
 
 - name: Create local log directories
   ansible.builtin.file:
-    path: "{{ results_dir }}/ue={{ current_ue.pod }}/"
+    path: "{{ results_dir }}/ue={{ current_ue.metadata.name }}/"
     state: directory
-  loop: "{{ valid_ue_list }}"
+  loop: "{{ ue_resources }}"
   loop_control:
     loop_var: current_ue
   delegate_to: localhost
-  become: yes
+  become: no
 
 # ============================================================
 # Individual UE iPerf
