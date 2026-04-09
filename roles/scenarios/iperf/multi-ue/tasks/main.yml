@@ -2,7 +2,7 @@
 - name: Define variables
   set_fact:
     tcp_bandwidth: "0" # 0 == unlimited
-    udp_bandwidth: "100M"
+    udp_bandwidth: "50M"
 
 - name: Define iperf_scenarios
   set_fact:
@@ -11,6 +11,8 @@
       - {protocol: "tcp", direction: "down", extra_args: "-b {{ tcp_bandwidth }} -R"}
       - {protocol: "udp", direction: "up", extra_args: "-u -b {{ udp_bandwidth }}"}
       - {protocol: "udp", direction: "down", extra_args: "-u -b {{ udp_bandwidth }} -R"}
+      - {protocol: "sctp", direction: "up", extra_args: "--sctp -b {{ tcp_bandwidth }}"}
+      - {protocol: "sctp", direction: "down", extra_args: "--sctp -b {{ tcp_bandwidth }} -R"}
 
 - name: Set defaults and initialize ue_ips dictionary
   set_fact:
@@ -62,6 +64,12 @@
   loop_control:
     loop_var: current_ue
   delegate_to: localhost
+
+- name: Wipe remote log directories
+  ansible.builtin.file:
+    path: "/tmp/iperf_logs"
+    state: absent
+  loop: "{{ valid_ue_list }}"
 
 - name: Copy inventory file
   ansible.builtin.copy:
