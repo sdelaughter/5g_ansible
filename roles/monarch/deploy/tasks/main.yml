@@ -114,7 +114,6 @@
     line: 'NODE_IP="{{ monarch_node_ip }}"'
     create: yes
 
-# --- Python venv preparation (robust, idempotent) ---
 - name: Ensure system packages for Python venv are installed
   ansible.builtin.package:
     name:
@@ -128,26 +127,18 @@
     path: /opt/ansible-venv
     state: absent
 
-- name: Create fresh ansible virtualenv (robust)
-  ansible.builtin.pip:
-    virtualenv: /opt/ansible-venv
-    virtualenv_command: /usr/bin/python3 -m venv
-    name: pip
-    state: present
+- name: Create fresh ansible virtualenv using shell
+  ansible.builtin.shell: /usr/bin/python3 -m venv /opt/ansible-venv
+  args:
+    creates: /opt/ansible-venv/bin/python3
 
 - name: Upgrade pip, setuptools, wheel in venv
-  ansible.builtin.pip:
-    virtualenv: /opt/ansible-venv
-    name:
-      - pip
-      - setuptools
-      - wheel
-    state: latest
+  ansible.builtin.shell: /opt/ansible-venv/bin/pip install --upgrade pip setuptools wheel
+  args:
+    creates: /opt/ansible-venv/bin/wheel
 
 - name: Install Python requirements inside venv
-  ansible.builtin.pip:
-    requirements: "{{ repo_dest }}/requirements.txt"
-    virtualenv: /opt/ansible-venv
+  ansible.builtin.shell: /opt/ansible-venv/bin/pip install -r {{ repo_dest }}/requirements.txt
 
 # --- Deploy external Monarch components robustly ---
 - name: Stop and remove old Monarch services
