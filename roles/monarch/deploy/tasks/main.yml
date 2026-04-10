@@ -2,6 +2,13 @@
 - name: START_MONARCH_DEPLOY
   ansible.builtin.meta: noop
 
+# === CRITICAL: Reset Python interpreter BEFORE venv cleanup ===
+# This to prevent a crash when deleting the venv that Ansible is currently using
+# (from a previous role like k8s_create)
+- name: Reset Ansible Python interpreter to system Python
+  ansible.builtin.set_fact:
+    ansible_python_interpreter: /usr/bin/python3
+
 - import_tasks: persist_data.yml
 
 - name: Clone 5G-Monarch repo
@@ -114,6 +121,7 @@
     line: 'NODE_IP="{{ monarch_node_ip }}"'
     create: yes
 
+# === Python venv preparation (robust, works in any environment) ===
 - name: Ensure system packages for Python venv are installed
   ansible.builtin.package:
     name:
@@ -139,6 +147,11 @@
 
 - name: Install Python requirements inside venv
   ansible.builtin.shell: /opt/ansible-venv/bin/pip install -r {{ repo_dest }}/requirements.txt
+
+# === Reactivate venv Python interpreter for subsequent tasks ===
+- name: Force Ansible to use new venv Python
+  ansible.builtin.set_fact:
+    ansible_python_interpreter: /opt/ansible-venv/bin/python
 
 # --- Deploy external Monarch components robustly ---
 - name: Stop and remove old Monarch services
