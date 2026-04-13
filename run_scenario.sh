@@ -4,8 +4,8 @@ set -e
 DEFAULT_PROFILE_5G="default"
 DEFAULT_INVENTORY="default"
 
-+PROFILE_5G="${PROFILE_5G:-$DEFAULT_PROFILE_5G}"
-+INVENTORY="${INVENTORY:-./inventory/${DEFAULT_INVENTORY}/hosts.ini}"
+PROFILE_5G="${PROFILE_5G:-$DEFAULT_PROFILE_5G}"
+INVENTORY="${INVENTORY:-./inventory/${DEFAULT_INVENTORY}/hosts.ini}"
 
 IPERF_PLAYBOOK="playbooks/run_scenario_iperf.yml"
 SETUP_IPERF_PLAYBOOK="playbooks/setup_iperf.yml"
