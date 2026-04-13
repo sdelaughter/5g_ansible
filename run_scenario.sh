@@ -8,6 +8,8 @@ IPERF_PLAYBOOK="playbooks/run_scenario_iperf.yml"
 SETUP_IPERF_PLAYBOOK="playbooks/setup_iperf.yml"
 INTERFERENCE_PLAYBOOK="playbooks/run_scenario_interference.yml"
 SETUP_INTERFERENCE_PLAYBOOK="playbooks/setup_interference.yml"
+MULTI_UE_PLAYBOOK="playbooks/run_scenario_iperf_multi.yml"
+SETUP_MULTI_UE_PLAYBOOK="playbooks/setup_iperf.yml" # setup is the same as normal
 
 RUN_SETUP=true
 RUN_SCENARIO=true
@@ -15,7 +17,7 @@ SETUP_PLAYBOOK="${SETUP_IPERF_PLAYBOOK}"
 TARGET_PLAYBOOK="${IPERF_PLAYBOOK}"
 DRY_RUN=false
 
-DIR_LOGS="LOGS"
+DIR_LOG="LOGS"
 mkdir -p ${DIR_LOGS}
 
 EXTRA_VARS_ARRAY=()
@@ -30,10 +32,11 @@ run_cmd() {
 }
 
 usage() {
-    echo "Usage: $0 [-d|-i] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
+    echo "Usage: $0 [-d|-i|-m] [--no-setup] [--inventory=name] [-e vars] [--dry-run]"
     echo ""
     echo "-d                       Deploy the default iperf scenario"
     echo "-i                       Deploy the interference scenario"
+    echo "-m                       Deploy the multi-UE iperf scenario"
     echo "-n, --no-setup           Do not run the setup, use this option if R2lab devices already up and running"
     echo "-s, --only-setup         Only run the setup"
     echo "-e <vars>                Extra ansible vars, e.g., -e \"nb_ues=5\" -e \"duration=20\""
@@ -77,6 +80,11 @@ while [[ $# -gt 0 ]]; do
         -i)
             SETUP_PLAYBOOK="${SETUP_INTERFERENCE_PLAYBOOK}"
             TARGET_PLAYBOOK="${INTERFERENCE_PLAYBOOK}"
+            shift
+            ;;
+        -m)
+            SETUP_PLAYBOOK="${SETUP_MULTI_UE_PLAYBOOK}"
+            TARGET_PLAYBOOK="${MULTI_UE_PLAYBOOK}"
             shift
             ;;
         -h|--help)
