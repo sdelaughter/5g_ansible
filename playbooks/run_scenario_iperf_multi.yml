@@ -52,20 +52,20 @@
   roles:
     - role: scenarios/iperf_server_multi
 
-- name: Run RFSIM UE iperf tests (only if rru=rfsim)
-  hosts: core_node
-  become: true
-  gather_facts: false
-  vars:
-    target_server_host: "{{ hostvars['localhost'].get('target_server_host', groups['iperf_server_node'][0]) }}"
-    target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
-    nb_ues: "{{ 3 if rru == 'rfsim' else groups['qhats'] | length }}"
-    ignore_task_errors: yes
-  tasks:
-    - name: Run RFSIM role
-      include_role:
-        name: scenarios/iperf/rfsim-multi
-      when: rru == "rfsim"
+# - name: Run RFSIM UE iperf tests (only if rru=rfsim)
+#   hosts: core_node
+#   become: true
+#   gather_facts: false
+#   vars:
+#     target_server_host: "{{ hostvars['localhost'].get('target_server_host', groups['iperf_server_node'][0]) }}"
+#     target_server_ip: "{{ hostvars[target_server_host]['ip'] }}"
+#     nb_ues: "{{ 3 if rru == 'rfsim' else groups['qhats'] | length }}"
+#     ignore_task_errors: yes
+#   tasks:
+#     - name: Run RFSIM role
+#       include_role:
+#         name: scenarios/iperf/rfsim-multi
+#       when: rru == "rfsim"
 
 - name: Optionally run UE to target_server iperf tests from Faraday
   hosts: faraday
