@@ -2,7 +2,7 @@
 - name: Define variables
   set_fact:
     tcp_bandwidth: "0" # 0 == unlimited
-    udp_bandwidth: "100M"
+    udp_bandwidth: "50M"
 
 - name: Define iperf_scenarios
   set_fact:
@@ -62,6 +62,12 @@
   loop_control:
     loop_var: current_ue
   delegate_to: localhost
+
+- name: Wipe remote log directories
+  ansible.builtin.file:
+    path: "/tmp/iperf_logs"
+    state: absent
+  loop: "{{ valid_ue_list }}"
 
 - name: Copy inventory file
   ansible.builtin.copy:
