@@ -3,6 +3,7 @@
   set_fact:
     tcp_bandwidth: "0" # 0 == unlimited
     udp_bandwidth: "50M"
+    async_stagger: 0
 
 - name: Define iperf_scenarios
   set_fact:
