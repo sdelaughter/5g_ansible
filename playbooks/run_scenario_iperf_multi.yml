@@ -5,11 +5,11 @@
     - name: Normalize booleans at playbook start
       import_tasks: ../tasks/reload_booleans.yml
 
-- name: Fail if using RFSIM (not yet supported)
-  hosts: localhost
-  ansible.builtin.fail:
-    msg: "Error: RFSIM is not yet supported for the multi-UE scenario"
-  when: rru == "rfsim"
+# - name: Fail if using RFSIM (not yet supported)
+#   hosts: localhost
+#   ansible.builtin.fail:
+#     msg: "Error: RFSIM is not yet supported for the multi-UE scenario"
+#   when: rru == "rfsim"
 
 # ============================================================
 # Set global target_server variable (default: iperf_server_node)
