@@ -134,7 +134,7 @@ init_defaults_and_banner() {
     DEFAULT_CORE="open5gs"
     DEFAULT_RAN="oai"
     DEFAULT_PLATFORM="r2lab"
-    DEFAULT_RU="n320"
+    DEFAULT_RU="n300"
     DEFAULT_LIST_UE="qhat01"
 
     PROFILE_5G="${PROFILE_5G:-$DEFAULT_PROFILE_5G}"
@@ -331,11 +331,10 @@ collect_user_inputs() {
     if [[ "$platform" == "r2lab" ]]; then
       if [[ "$ran" == "oai" ]]; then
         R2LAB_RUs=("benetel1" "benetel2" "jaguar" "panther" "n300" "n320")
-      else # $ran == "srsRAN" for now, only n3xx RUs supported
-        R2LAB_RUs=("n300" "n320")
+      else # $ran == "srsRAN" for now, only n3xx and benetel RUs supported
+        R2LAB_RUs=("n300" "n320" "benetel1" "benetel2")
       fi
       # Select RU
-      # Make jaguar the default if the user just presses enter
       echo ""
       echo "Select the RU to use (default: ${DEFAULT_RU}):"
       for i in "${!R2LAB_RUs[@]}"; do
@@ -355,10 +354,10 @@ collect_user_inputs() {
       echo "RU is $R2LAB_RU"
       case "${R2LAB_RU}" in
         "benetel1"|"benetel2")
-          echo "Currently Benetel scenarios mandates OAI core and OAI ran on sopnode-f3, enforcing parameters..."
-          core="oai"
-          ran="oai"
-          ran_node="sopnode-f3"
+          if [[ "${ran_node}" != "sopnode-f3" ]]; then
+            echo "❌ Invalid server used for RAN pods with benetel RU, only sopnode-f3 currently supported"
+            exit 1
+	  fi
           fhi72=true
           ;;
         *)

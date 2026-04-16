@@ -78,17 +78,9 @@
       when: item.rc != 0
       loop: "{{ job_status.results }}"
 
-
 # The following task requires all nodes be ssh-reachable
 # so it can't be the first task of the playbook
-# avoid hosts: all to not include fit_nodes since they are not running before sceanrio setup and will fail
-- hosts: sopnodes
-  gather_facts: true
-  tasks:
-    - name: Normalize booleans at playbook start
-      import_tasks: ../tasks/reload_booleans.yml
-
-- hosts: qhats
+- hosts: localhost,sopnodes
   gather_facts: true
   tasks:
     - name: Normalize booleans at playbook start
@@ -105,7 +97,7 @@
     - role: setup/k8s/k8s_env
     - role: setup/optimization/cpu
     - role: setup/ovs
-      when: not fhi72
+      when: not (fhi72 and ran == 'oai')
 
 - name: PTP setup on ran_node
   hosts: ran_node
@@ -249,19 +241,6 @@
     - role: 5g/free5gc/deploy
       when: core == 'free5gc'
 
-############################################################################
-# Move this block where you want to restart with start-at-task=RESTART_HERE"
-#
-- hosts: localhost,core_node,ran_node
-  gather_facts: false
-  tasks:
-    - name: RESTART_HERE
-      ansible.builtin.meta: noop
-
-    - import_tasks: ../tasks/reload_booleans.yml
-#
-############################################################################
-
 - name: Deploy OAI CN/RAN
   hosts: ran_node
   pre_tasks:
@@ -277,6 +256,19 @@
       when: core == 'oai'
     - role: 5g/oai/ran
       when: ran == 'oai'
+
+############################################################################
+# Move this block where you want to restart with start-at-task=RESTART_HERE"
+#
+- hosts: localhost,core_node,ran_node
+  gather_facts: false
+  tasks:
+    - name: RESTART_HERE
+      ansible.builtin.meta: noop
+
+    - import_tasks: ../tasks/reload_booleans.yml
+#
+############################################################################
 
 - name: Deploy srsRAN
   hosts: ran_node
