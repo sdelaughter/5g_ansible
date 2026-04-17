@@ -121,3 +121,9 @@
   loop_control:
     loop_var: current_ue
   delegate_to: localhost
+
+- name: Cleanup local async files
+  ansible.builtin.file:
+    path: ".ansible_async/"
+    state: absent
+  delegate_to: localhost

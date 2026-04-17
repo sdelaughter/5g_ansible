@@ -1,4 +1,6 @@
 ---
+async_stagger: 0
+
 ping_scenarios:
   - {packet_size: 64, extra_args: ""}
   - {packet_size: 1000, extra_args: "-s 992"} # 8 bytes of header data
