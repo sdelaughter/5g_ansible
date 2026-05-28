@@ -23,4 +23,4 @@
   vars:
     packet_size: "{{ scenario.packet_size }}"
     extra_args: "{{ scenario.extra_args }}"
-    log_dir: "/tmp/ping_logs/protocol=ICMP/ue_count=1/packet_size={{ packet_size }}"
+    log_dir: "/tmp/ping_logs/protocol=ICMP/ue_count=1/packet_size={{ packet_size }}/ttl={ ttl }/ping_interval={ ping_interval }"

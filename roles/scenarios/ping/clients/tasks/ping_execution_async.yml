@@ -28,7 +28,7 @@
   vars:
     pre_sleep: "{{ async_stagger * ue_index }}"
     ue_ip: "{{ ue_ips[current_ue] }}"
-    log_dir: "/tmp/ping_logs/protocol=ICMP/ue_count={{ ue_count }}/packet_size={{ packet_size }}"
+    log_dir: "/tmp/ping_logs/protocol=ICMP/ue_count={{ ue_count }}/packet_size={{ packet_size }}/ttl={ ttl }/ping_interval={ ping_interval }"
     test_duration: "{{ (duration | int) - (pre_sleep | int) }}"
 
 - name: Wait for async jobs to finish
