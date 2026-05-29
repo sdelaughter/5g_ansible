@@ -91,6 +91,8 @@
     ue_count: "{{ valid_ue_list|length }}"
     packet_size: "{{ scenario.packet_size }}"
     extra_args: "{{ scenario.extra_args }}"
+    ttl: "{{ scenario.ttl }}"
+    ping_interval: "{{ scenario.ping_interval }}"
     ignore_task_errors: true
   when: do_simultaneous_tests
 
