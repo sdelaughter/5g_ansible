@@ -1,0 +1,24 @@
+  - {iperf_protocol: "tcp", iperf_rate: "100K", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_100K_up", ping_args: "-i 1 -s 56", iperf_args: "-b 100K"}
+  - {iperf_protocol: "tcp", iperf_rate: "100K", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_100K_up", ping_args: "-i 0.1 -s 56", iperf_args: "-b 100K"}
+  - {iperf_protocol: "tcp", iperf_rate: "100K", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_100K_down", ping_args: "-i 1 -s 56", iperf_args: "-b 100K -R"}
+  - {iperf_protocol: "tcp", iperf_rate: "100K", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_100K_down", ping_args: "-i 0.1 -s 56", iperf_args: "-b 100K -R"}
+  - {iperf_protocol: "tcp", iperf_rate: "1M", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_1M_up", ping_args: "-i 1 -s 56", iperf_args: "-b 1M"}
+  - {iperf_protocol: "tcp", iperf_rate: "1M", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_1M_up", ping_args: "-i 0.1 -s 56", iperf_args: "-b 1M"}
+  - {iperf_protocol: "tcp", iperf_rate: "1M", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_1M_down", ping_args: "-i 1 -s 56", iperf_args: "-b 1M -R"}
+  - {iperf_protocol: "tcp", iperf_rate: "1M", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_1M_down", ping_args: "-i 0.1 -s 56", iperf_args: "-b 1M -R"}
+  - {iperf_protocol: "tcp", iperf_rate: "10M", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_10M_up", ping_args: "-i 1 -s 56", iperf_args: "-b 10M"}
+  - {iperf_protocol: "tcp", iperf_rate: "10M", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_10M_up", ping_args: "-i 0.1 -s 56", iperf_args: "-b 10M"}
+  - {iperf_protocol: "tcp", iperf_rate: "10M", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "TCP_10M_down", ping_args: "-i 1 -s 56", iperf_args: "-b 10M -R"}
+  - {iperf_protocol: "tcp", iperf_rate: "10M", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "TCP_10M_down", ping_args: "-i 0.1 -s 56", iperf_args: "-b 10M -R"}
+  - {iperf_protocol: "udp", iperf_rate: "100K", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_100K_up", ping_args: "-i 1 -s 56", iperf_args: "-u -b 100K"}
+  - {iperf_protocol: "udp", iperf_rate: "100K", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_100K_up", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 100K"}
+  - {iperf_protocol: "udp", iperf_rate: "100K", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_100K_down", ping_args: "-i 1 -s 56", iperf_args: "-u -b 100K -R"}
+  - {iperf_protocol: "udp", iperf_rate: "100K", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_100K_down", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 100K -R"}
+  - {iperf_protocol: "udp", iperf_rate: "1M", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_1M_up", ping_args: "-i 1 -s 56", iperf_args: "-u -b 1M"}
+  - {iperf_protocol: "udp", iperf_rate: "1M", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_1M_up", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 1M"}
+  - {iperf_protocol: "udp", iperf_rate: "1M", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_1M_down", ping_args: "-i 1 -s 56", iperf_args: "-u -b 1M -R"}
+  - {iperf_protocol: "udp", iperf_rate: "1M", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_1M_down", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 1M -R"}
+  - {iperf_protocol: "udp", iperf_rate: "10M", iperf_dir: "up", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_10M_up", ping_args: "-i 1 -s 56", iperf_args: "-u -b 10M"}
+  - {iperf_protocol: "udp", iperf_rate: "10M", iperf_dir: "up", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_10M_up", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 10M"}
+  - {iperf_protocol: "udp", iperf_rate: "10M", iperf_dir: "down", ping_rate: 1, ping_size: 64, bg_traffic: "UDP_10M_down", ping_args: "-i 1 -s 56", iperf_args: "-u -b 10M -R"}
+  - {iperf_protocol: "udp", iperf_rate: "10M", iperf_dir: "down", ping_rate: 0.1, ping_size: 64, bg_traffic: "UDP_10M_down", ping_args: "-i 0.1 -s 56", iperf_args: "-u -b 10M -R"}

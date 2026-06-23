@@ -1,0 +1,11 @@
+- name: Execute ping tests for baseline scenarios
+  include_tasks: baseline.yml
+  loop: "{{ baseline_scenarios }}"
+  loop_control:
+    loop_var: s
+
+- name: Execute ping tests for background scenarios
+  include_tasks: execution.yml
+  loop: "{{ scenarios }}"
+  loop_control:
+    loop_var: s

@@ -1,0 +1,2 @@
+  - {ping_rate: 1, ping_size: 64, iperf_protocol: "None", iperf_rate: "None", iperf_dir: "None", bg_traffic: "None", ping_args: "-i 1 -s 56", iperf_args: ""}
+  - {ping_rate: 0.1, ping_size: 64, iperf_protocol: "None", iperf_rate: "None", iperf_dir: "None", bg_traffic: "None", ping_args: "-i 0.1 -s 56", iperf_args: ""}
