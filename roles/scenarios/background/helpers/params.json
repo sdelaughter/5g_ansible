@@ -1,6 +1,6 @@
 {
     "iperf_protocol": ["tcp", "udp"],
-    "iperf_rate": ["100K", "1M", "10M"],
+    "iperf_rate": ["10M"],
     "iperf_dir": ["up", "down"],
     "ping_rate": [1, 0.1],
     "ping_size": [64]
