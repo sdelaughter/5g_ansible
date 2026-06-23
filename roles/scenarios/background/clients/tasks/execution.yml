@@ -7,7 +7,7 @@
       Duration: {{ ping_duration }}s
 
 - name: Execute all scenarios
-  include_tasks: background.yml
+  include_tasks: scenario.yml
   loop: "{{ scenarios }}"
   loop_control:
     loop_var: s
