@@ -1,11 +1,13 @@
-- name: Execute ping tests for baseline scenarios
-  include_tasks: baseline.yml
-  loop: "{{ baseline_scenarios }}"
-  loop_control:
-    loop_var: s
+- name: Debug parameters
+  debug:
+    msg: |
+      UE: {{ current_ue }}
+      Bind IP: {{ ue_ip }}
+      Server IP: {{ target_server }}
+      Duration: {{ ping_duration }}s
 
-- name: Execute ping tests for background scenarios
-  include_tasks: execution.yml
+- name: Execute all scenarios
+  include_tasks: background.yml
   loop: "{{ scenarios }}"
   loop_control:
     loop_var: s
