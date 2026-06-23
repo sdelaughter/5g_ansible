@@ -1,7 +1,7 @@
 ---
 ping_duration: 30
-iperf_duration: 40 # We start iperf slightly before ping and want to make sure it runs throughout.  It will be killed after ping ends
-sleep: 5
+iperf_duration: 35 # We start iperf slightly before ping and want to make sure it runs throughout
+sleep: 10
 
 # Use helpers/scenario_builder.py to build scenario lists
 scenarios:
