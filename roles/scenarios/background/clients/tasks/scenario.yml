@@ -1,5 +1,4 @@
 ---
-# Run Uplink test on UE
 - name: Debug scenario parameters
   debug:
     msg: |
@@ -7,7 +6,7 @@
 
 - name: Name log directory
   set_fact:
-    log_dir: "/tmp/bg_logs/protocol=ICMP/ue_count={{ ue_count }}/bg_app=iperf3/start_time={{ ansible_date_time.epoch }}"
+    log_dir: "/tmp/bg_logs/protocol=ICMP/ue_count={{ ue_count }}/start_time={{ ansible_date_time.epoch }}"
 
 - name: Start iPerf background traffic
   shell: |
