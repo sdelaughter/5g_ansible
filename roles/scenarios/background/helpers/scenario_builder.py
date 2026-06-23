@@ -1,9 +1,15 @@
+# Used to construct a list of scenario dictionaries to loop over in ansible.
+# See params.json and baseline_params.json for input format.
+# See scenarios.txt and baseline_scenarios.txt for corresponding output. 
+# Paste contents of the output files under "scenarios:" in ../clients/defaults/main.yml
+
 import itertools
 import json
 import sys
 from pprint import pprint
 
 def build_ping_args(scenario):
+    # Construct command-line arguments for ping based on parameter values
     args = []
     if "ping_rate" in scenario:
         args.append(f"-i {scenario["ping_rate"]}")
@@ -12,6 +18,7 @@ def build_ping_args(scenario):
     return " ".join(args)
 
 def build_iperf_args(scenario):
+    # Construct command-line arguments for iperf based on parameter values
     args = []
     bg_label = []
     # Protocol
@@ -22,12 +29,14 @@ def build_iperf_args(scenario):
             args.append("-u")
     else:
         scenario["iperf_protocol"] = "None"
+
     # Rate
     if "iperf_rate" in scenario:
         args.append(f"-b {scenario["iperf_rate"]}")
         bg_label.append(scenario["iperf_rate"])
     else:
         scenario["iperf_rate"] = "None"
+
     # Direction
     if "iperf_dir" in scenario:
         val = scenario["iperf_dir"].lower()
@@ -37,6 +46,8 @@ def build_iperf_args(scenario):
     else:
         scenario["iperf_dir"] = "None"
     
+    # Build a label combining all values relating to background traffic, to simplify plotting
+    # iPerf will only be run when this value is not "None"
     if len(bg_label) > 0:
         scenario["bg_traffic"] = "_".join(bg_label)
     else:
@@ -63,6 +74,7 @@ def build(infile, outfile):
             i["iperf_args"] = iperf_args
             s = []
             for k, v in i.items():
+                # If the value is non-numeric, wrap it in quotes when writing to file
                 try:
                     _ = float(v)
                 except:
